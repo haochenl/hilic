@@ -26,10 +26,3 @@ class ProgramArguments():
 
 if __name__ == '__main__':
     args = ProgramArguments(__doc__, __version__).parse()
-    print args.log
-    print args.mapq
-    print args.observed
-    print args.ice
-    print args.config
-    print args.reference
-    print args.bin
