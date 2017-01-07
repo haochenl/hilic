@@ -112,7 +112,7 @@ def align_and_rename(filename_list, genome_fasta, aligned_set, pool):
         if extension == ".fastq":
             sam_name = name + ".sam"
             if filename not in aligned_set:
-                pool.apply(linuxUtils.run_BWA(), args=(filename, genome_fasta, sam_name))
+                pool.apply(linuxUtils.run_bwa(), args=(filename, genome_fasta, sam_name))
                 aligned_set.add(filename)
             filename_list[i] = sam_name
         elif extension == ".sam":
