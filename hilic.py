@@ -34,6 +34,8 @@ class ProgramArguments():
         required_arguments.add_argument("-g", "--genome", help="reference genome of the input data", action="store",
                                         dest="genome", choices=["hg19", "hg38"], metavar="<hg19 OR hg38>",
                                         required=True)
+        required_arguments.add_argument("-f", "--fasta", help="path to the bwa indexed reference genome fasta file", action="store",
+                                        dest="fasta", metavar="<PATH_TO_FILE>", required=True)
         required_arguments.add_argument("-r", "--resolution",
                                         help="base pair resolution(s) of the output contact matrix/matrices",
                                         action="store", nargs="+", dest="resolution", metavar="INT", type=int,
@@ -92,17 +94,17 @@ class ConfigFileReader():
                 file_dictionary[content_list[index]] = content_list[index + 1].split("\n")
         return file_dictionary
 
-    def align_fastq_files(self):
+    def align_fastq_files(self, genome_fasta):
         workers_pool = multiprocessing.Pool()
         aligned_file_set = set()
-        align_and_rename(self.hicRead1Files, aligned_file_set, workers_pool)
-        align_and_rename(self.hicRead2Files, aligned_file_set, workers_pool)
-        align_and_rename(self.controlRead1Files, aligned_file_set, workers_pool)
-        align_and_rename(self.controlRead2Files, aligned_file_set, workers_pool)
+        align_and_rename(self.hicRead1Files, genome_fasta,  aligned_file_set, workers_pool)
+        align_and_rename(self.hicRead2Files, genome_fasta, aligned_file_set, workers_pool)
+        align_and_rename(self.controlRead1Files, genome_fasta, aligned_file_set, workers_pool)
+        align_and_rename(self.controlRead2Files, genome_fasta, aligned_file_set, workers_pool)
         workers_pool.close()
 
 
-def align_and_rename(filename_list, aligned_set, pool):
+def align_and_rename(filename_list, genome_fasta, aligned_set, pool):
     for i in range(len(filename_list)):
         filename = filename_list[i]
         name = os.path.splitext(filename)[0]
@@ -110,7 +112,7 @@ def align_and_rename(filename_list, aligned_set, pool):
         if extension == ".fastq":
             sam_name = name + ".sam"
             if filename not in aligned_set:
-                pool.apply(linuxUtils.run_BWA(), args=(filename, sam_name))
+                pool.apply(linuxUtils.run_BWA(), args=(filename, genome_fasta, sam_name))
                 aligned_set.add(filename)
             filename_list[i] = sam_name
         elif extension == ".sam":
@@ -136,4 +138,4 @@ if __name__ == '__main__':
     args = ProgramArguments(__doc__, __version__).parse()
     config_reader = ConfigFileReader(args.config)
     config_reader.parse()
-    config_reader.align_fastq_files()
+    config_reader.align_fastq_files(args.fasta)

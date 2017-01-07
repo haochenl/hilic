@@ -8,8 +8,8 @@ import subprocess
 import sys
 
 
-def run_bwa(fastq_filename, sam_filename):
-    args = ["bwa", "mem", "-5", fastq_filename, ">", sam_filename]
+def run_bwa(fastq_filename, genome_fasta, sam_filename):
+    args = ["bwa", "mem", "-5", genome_fasta, fastq_filename, ">", sam_filename]
     code = subprocess.call(args)
     if code == 0:
         print >> sys.stderr, "File '{}' processed.".format(fastq_filename)
