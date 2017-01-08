@@ -8,8 +8,8 @@ import argparse
 import sys
 import re
 import os
-import multiprocessing
 import linuxUtils
+import time
 
 __author__ = 'Haochen Li'
 __version__ = 'v0.0.1'
@@ -43,7 +43,7 @@ class ProgramArguments():
         return self.parser.parse_args(args)
 
 
-class ConfigFileReader():
+class InputFileReader():
     _hicRead1Key = "HicRead1"
     _hicRead2Key = "HicRead2"
     _controlRead1Key = "ControlRead1"
@@ -94,17 +94,31 @@ class ConfigFileReader():
                 file_dictionary[content_list[index]] = content_list[index + 1].split("\n")
         return file_dictionary
 
-    def align_fastq_files(self, genome_fasta):
-        workers_pool = multiprocessing.Pool()
+    def process_input_files(self, genome_fasta):
+        ## check if a fastq file is already aligned
+        ## useful when HiC and control files are the same
         aligned_file_set = set()
-        align_and_rename(self.hicRead1Files, genome_fasta,  aligned_file_set, workers_pool)
-        align_and_rename(self.hicRead2Files, genome_fasta, aligned_file_set, workers_pool)
-        align_and_rename(self.controlRead1Files, genome_fasta, aligned_file_set, workers_pool)
-        align_and_rename(self.controlRead2Files, genome_fasta, aligned_file_set, workers_pool)
-        workers_pool.close()
+        alignment_processes = []
+        print >> sys.stderr, 'start processing input files...'
+        alignment_start_time = time.time()
+        align_input_list(self.hicRead1Files, genome_fasta,  aligned_file_set, alignment_processes)
+        align_input_list(self.hicRead2Files, genome_fasta, aligned_file_set, alignment_processes)
+        align_input_list(self.controlRead1Files, genome_fasta, aligned_file_set, alignment_processes)
+        align_input_list(self.controlRead2Files, genome_fasta, aligned_file_set, alignment_processes)
+        if len(alignment_processes) > 0:
+            while count_complete_process(alignment_processes) < len(alignment_processes):
+                time.sleep(5)
+            for proc, filename in alignment_processes:
+                status = proc.poll()
+                if status == 0:
+                    print >> sys.stderr, 'file "%s" is aligned by "bwa mem -5".' % str(filename)
+                else:
+                    print >> sys.stderr, 'error when aligning file "%s"' % str(filename)
+            alignment_end_time = time.time()
+            print >> sys.stderr, 'cost %s minutes to align all fastq files.' % str(round((alignment_end_time - alignment_start_time)/60.0, 2))
 
 
-def align_and_rename(filename_list, genome_fasta, aligned_set, pool):
+def align_input_list(filename_list, genome_fasta, aligned_set, processes):
     for i in range(len(filename_list)):
         filename = filename_list[i]
         name = os.path.splitext(filename)[0]
@@ -112,10 +126,14 @@ def align_and_rename(filename_list, genome_fasta, aligned_set, pool):
         if extension == ".fastq":
             sam_name = name + ".sam"
             if filename not in aligned_set:
-                pool.apply(linuxUtils.run_bwa(), args=(filename, genome_fasta, sam_name))
+                processes.append(linuxUtils.run_bwa(filename, genome_fasta, sam_name))
                 aligned_set.add(filename)
             filename_list[i] = sam_name
         elif extension == ".sam":
+            print >> sys.stderr, 'only hilic processed bam alignment files are supported as input.'
+            sys.exit(1)
+        elif extension == ".bam":
+            print >> sys.stderr, '"%s" input file must follow hilic processed bam file format.'
             pass
         else:
             print >> sys.stderr, 'input file format (%s) not supported' % str(extension)
@@ -133,9 +151,19 @@ def check_file_status(filename_list):
                 print >> sys.stderr, 'listed file does not exist: %s' % str(filename)
                 sys.exit(1)
 
+def count_complete_process(processes):
+    count = 0
+    for proc, filename in processes:
+        status = proc.poll()
+        if status == None:
+            continue
+        else:
+            count += 1
+    return count
+
 
 if __name__ == '__main__':
     args = ProgramArguments(__doc__, __version__).parse()
-    config_reader = ConfigFileReader(args.config)
-    config_reader.parse()
-    config_reader.align_fastq_files(args.fasta)
+    input_reader = InputFileReader(args.config)
+    input_reader.parse()
+    input_reader.process_input_files(args.fasta)
