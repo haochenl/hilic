@@ -35,7 +35,8 @@ class ProgramArguments():
         required_arguments.add_argument("-g", "--genome", help="reference genome of the input data", action="store",
                                         dest="genome", choices=["hg19", "hg38"], metavar="<hg19 OR hg38>",
                                         required=True)
-        required_arguments.add_argument("-f", "--fasta", help="path to the bwa indexed reference genome fasta file", action="store",
+        required_arguments.add_argument("-f", "--fasta", help="path to the bwa indexed reference genome fasta file",
+                                        action="store",
                                         dest="fasta", metavar="<PATH_TO_FILE>", required=True)
         required_arguments.add_argument("-r", "--resolution",
                                         help="base pair resolution(s) of the output contact matrix/matrices",
@@ -102,7 +103,7 @@ class InputFileReader():
         aligned_file_set = set()
         alignment_processes = []
         alignment_start_time = time.time()
-        align_input_list(self.hicRead1Files, genome_fasta,  aligned_file_set, alignment_processes)
+        align_input_list(self.hicRead1Files, genome_fasta, aligned_file_set, alignment_processes)
         align_input_list(self.hicRead2Files, genome_fasta, aligned_file_set, alignment_processes)
         align_input_list(self.controlRead1Files, genome_fasta, aligned_file_set, alignment_processes)
         align_input_list(self.controlRead2Files, genome_fasta, aligned_file_set, alignment_processes)
@@ -117,7 +118,8 @@ class InputFileReader():
                 else:
                     print >> sys.stderr, 'error when aligning file "%s"' % str(filename)
             alignment_end_time = time.time()
-            print >> sys.stderr, 'cost %s minutes to align all fastq files.' % str(round((alignment_end_time - alignment_start_time)/60.0, 2))
+            print >> sys.stderr, 'cost %s minutes to align all fastq files.' % str(
+                round((alignment_end_time - alignment_start_time) / 60.0, 2))
         ## check if a sam file is already compressed
         ## useful when HiC and control files are the same
         compressed_file_set = set()
@@ -134,13 +136,15 @@ class InputFileReader():
             for proc, filename in compression_processes:
                 status = proc.poll()
                 if status == 0:
-                    print >> sys.stderr, '"%s" is filtered with only primary alignments and compressed to bam file by samtools.' % str(filename)
+                    print >> sys.stderr, '"%s" is filtered with only primary alignments and compressed to bam file by samtools.' % str(
+                        filename)
                     subprocess.call(["rm", filename])
                     print >> sys.stderr, '"%s" is removed.' % str(filename)
                 else:
                     print >> sys.stderr, 'error when compressing file "%s"' % str(filename)
             compression_end_time = time.time()
-            print >> sys.stderr, 'cost %s minutes to compress all sam files.' % str(round((compression_end_time - compression_start_time)/60.0, 2))
+            print >> sys.stderr, 'cost %s minutes to compress all sam files.' % str(
+                round((compression_end_time - compression_start_time) / 60.0, 2))
 
 
 def compress_sam_list(filename_list, compressed_set, processes):
@@ -154,6 +158,7 @@ def compress_sam_list(filename_list, compressed_set, processes):
                 processes.append(linuxUtils.run_samtools(filename, bam_name))
                 compressed_set.add(filename)
             filename_list[i] = bam_name
+
 
 def align_input_list(filename_list, genome_fasta, aligned_set, processes):
     for i in range(len(filename_list)):
@@ -176,6 +181,7 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
             print >> sys.stderr, 'input file format (%s) not supported' % str(extension)
             sys.exit(1)
 
+
 def check_file_status(filename_list):
     for filename in filename_list:
         if os.path.isdir(filename):
@@ -187,11 +193,12 @@ def check_file_status(filename_list):
                 print >> sys.stderr, 'listed file does not exist: %s' % str(filename)
                 sys.exit(1)
 
+
 def count_complete_process(processes):
     count = 0
     for proc, filename in processes:
         status = proc.poll()
-        if status == None:
+        if status is None:
             continue
         else:
             count += 1
