@@ -10,6 +10,7 @@ import re
 import os
 import linuxUtils
 import time
+import subprocess
 
 __author__ = 'Haochen Li'
 __version__ = 'v0.0.1'
@@ -97,15 +98,16 @@ class InputFileReader():
     def process_input_files(self, genome_fasta):
         ## check if a fastq file is already aligned
         ## useful when HiC and control files are the same
+        print >> sys.stderr, '[start processing input files]'
         aligned_file_set = set()
         alignment_processes = []
-        print >> sys.stderr, 'start processing input files...'
         alignment_start_time = time.time()
         align_input_list(self.hicRead1Files, genome_fasta,  aligned_file_set, alignment_processes)
         align_input_list(self.hicRead2Files, genome_fasta, aligned_file_set, alignment_processes)
         align_input_list(self.controlRead1Files, genome_fasta, aligned_file_set, alignment_processes)
         align_input_list(self.controlRead2Files, genome_fasta, aligned_file_set, alignment_processes)
         if len(alignment_processes) > 0:
+            print >> sys.stderr, 'start to align fastq files...'
             while count_complete_process(alignment_processes) < len(alignment_processes):
                 time.sleep(5)
             for proc, filename in alignment_processes:
@@ -116,7 +118,42 @@ class InputFileReader():
                     print >> sys.stderr, 'error when aligning file "%s"' % str(filename)
             alignment_end_time = time.time()
             print >> sys.stderr, 'cost %s minutes to align all fastq files.' % str(round((alignment_end_time - alignment_start_time)/60.0, 2))
+        ## check if a sam file is already compressed
+        ## useful when HiC and control files are the same
+        compressed_file_set = set()
+        compression_processes = []
+        compression_start_time = time.time()
+        compress_sam_list(self.hicRead1Files, compressed_file_set, compression_processes)
+        compress_sam_list(self.hicRead2Files, compressed_file_set, compression_processes)
+        compress_sam_list(self.controlRead1Files, compressed_file_set, compression_processes)
+        compress_sam_list(self.controlRead2Files, compressed_file_set, compression_processes)
+        if len(compression_processes) > 0:
+            print >> sys.stderr, "start to filter and compress sam files..."
+            while count_complete_process(compression_processes) < len(compression_processes):
+                time.sleep(5)
+            for proc, filename in compression_processes:
+                status = proc.poll()
+                if status == 0:
+                    print >> sys.stderr, '"%s" is filtered with only primary alignments and compressed to bam file by samtools.' % str(filename)
+                    subprocess.call(["rm", filename])
+                    print >> sys.stderr, '"%s" is removed.' % str(filename)
+                else:
+                    print >> sys.stderr, 'error when compressing file "%s"' % str(filename)
+            compression_end_time = time.time()
+            print >> sys.stderr, 'cost %s minutes to compress all sam files.' % str(round((compression_end_time - compression_start_time)/60.0, 2))
 
+
+def compress_sam_list(filename_list, compressed_set, processes):
+    for i in range(len(filename_list)):
+        filename = filename_list[i]
+        name = os.path.splitext(filename)[0]
+        extension = os.path.splitext(filename)[-1].lower()
+        if extension == ".sam":
+            bam_name = name + ".bam"
+            if filename not in compressed_set:
+                processes.append(linuxUtils.run_samtools(filename, bam_name))
+                compressed_set.add(filename)
+            filename_list[i] = bam_name
 
 def align_input_list(filename_list, genome_fasta, aligned_set, processes):
     for i in range(len(filename_list)):
@@ -138,7 +175,6 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
         else:
             print >> sys.stderr, 'input file format (%s) not supported' % str(extension)
             sys.exit(1)
-
 
 def check_file_status(filename_list):
     for filename in filename_list:
