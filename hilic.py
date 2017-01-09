@@ -175,7 +175,7 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
             print >> sys.stderr, 'only hilic processed bam alignment files are supported as input.'
             sys.exit(1)
         elif extension == ".bam":
-            print >> sys.stderr, '"%s" input file must follow hilic processed bam file format.'
+            print >> sys.stderr, '"%s" input file must follow hilic processed bam file format. can\'t guarantee correct results if not.' % str(filename)
             pass
         else:
             print >> sys.stderr, 'input file format (%s) not supported' % str(extension)
