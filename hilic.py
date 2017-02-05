@@ -8,7 +8,7 @@ import argparse
 import sys
 import re
 import os
-import file
+import utils
 import alignment
 import samtools
 
@@ -81,10 +81,10 @@ class InputFileReader():
         control_read1_file_list = file_dictionary[self._controlRead1Key]
         control_read2_file_list = file_dictionary[self._controlRead2Key]
         os.chdir(os.path.dirname(self.configFilePath))
-        file.check_file_status(hic_read1_file_list)
-        file.check_file_status(hic_read2_file_list)
-        file.check_file_status(control_read1_file_list)
-        file.check_file_status(control_read2_file_list)
+        utils.check_file_status(hic_read1_file_list)
+        utils.check_file_status(hic_read2_file_list)
+        utils.check_file_status(control_read1_file_list)
+        utils.check_file_status(control_read2_file_list)
         self.hicRead1Files = hic_read1_file_list
         self.hicRead2Files = hic_read2_file_list
         self.controlRead1Files = control_read1_file_list
