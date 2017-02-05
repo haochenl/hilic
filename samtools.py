@@ -15,7 +15,6 @@ def compress_from_reader(input_file_reader):
     """
     Compress the sam alignment files from hilic config file reader
     :param input_file_reader: the hilic config file reader
-    :return:
     """
     ## check if a sam file is already compressed
     ## useful when HiC and control files are the same
@@ -50,7 +49,6 @@ def compress_sam_list(filename_list, compressed_set, processes):
     :param filename_list: list of file names
     :param compressed_set: set of files already compresses
     :param processes: list of compression processes
-    :return:
     """
     for i in range(len(filename_list)):
         filename = filename_list[i]

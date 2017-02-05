@@ -16,7 +16,6 @@ def align_from_reader(input_file_reader, genome_fasta):
     Align the fastq files from hilic config file reader
     :param input_file_reader: the hilic config file reader
     :param genome_fasta: the bwa aligner fasta file path
-    :return:
     """
     ## check if a fastq file is already aligned
     ## useful when HiC and control files are the same
@@ -49,7 +48,6 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
     :param genome_fasta: the bwa aligner fasta file path
     :param aligned_set: set of files that already aligned
     :param processes: list of processes to track
-    :return:
     """
     for i in range(len(filename_list)):
         filename = filename_list[i]

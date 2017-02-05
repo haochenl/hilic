@@ -28,7 +28,6 @@ def check_file_status(filename_list):
     """
     Check a list of file names and exit if not a regular file
     :param filename_list: list of file names
-    :return:
     """
     for filename in filename_list:
         if os.path.isdir(filename):

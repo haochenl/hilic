@@ -72,7 +72,6 @@ class InputFileReader():
     def parse(self):
         """
         Parse the configurations and populate data file names
-        :return:
         """
         file_content = self.__reader.read()
         file_dictionary = self.build_file_dictionary(file_content)
@@ -115,7 +114,6 @@ class InputFileReader():
         """
         Align the input files and compress the alignment output
         :param genome_fasta: the bwa aligner fasta file path
-        :return:
         """
         print >> sys.stderr, '[start processing input files]'
         alignment.align_from_reader(self, genome_fasta)
