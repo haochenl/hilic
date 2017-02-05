@@ -17,6 +17,9 @@ __version__ = 'v0.0.1'
 
 
 class ProgramArguments():
+    """
+    The program command line parser
+    """
     def __init__(self, description, version):
         self.parser = argparse.ArgumentParser(description=description, version=version)
 
@@ -46,6 +49,9 @@ class ProgramArguments():
 
 
 class InputFileReader():
+    """
+    The program config file parser and processor
+    """
     _hicRead1Key = "HicRead1"
     _hicRead2Key = "HicRead2"
     _controlRead1Key = "ControlRead1"
@@ -64,6 +70,10 @@ class InputFileReader():
         self.controlRead2Files = []
 
     def parse(self):
+        """
+        Parse the configurations and populate data file names
+        :return:
+        """
         file_content = self.__reader.read()
         file_dictionary = self.build_file_dictionary(file_content)
         hic_read1_file_list = file_dictionary[self._hicRead1Key]
@@ -81,6 +91,11 @@ class InputFileReader():
         self.controlRead2Files = control_read2_file_list
 
     def build_file_dictionary(self, content):
+        """
+        Parse the config file content build file name dictionary for different input file sections
+        :param content: the config file content
+        :return: file name dictionary for different sections
+        """
         content_list = filter(None, [x.strip() for x in re.split('\[|\]', content)])
         if len(content_list) != 8:
             print >> sys.stderr, 'unexpected config file format!'
@@ -97,6 +112,11 @@ class InputFileReader():
         return file_dictionary
 
     def process_input_files(self, genome_fasta):
+        """
+        Align the input files and compress the alignment output
+        :param genome_fasta: the bwa aligner fasta file path
+        :return:
+        """
         print >> sys.stderr, '[start processing input files]'
         alignment.align_from_reader(self, genome_fasta)
         samtools.compress_from_reader(self)
