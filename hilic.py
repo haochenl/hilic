@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Hi-C data normalization workflow by experimental control ([Hi]-C [Li]'s [C]orrection: HiLiC)
+Hi-C data normalization workflow by experimental control
 """
 
 import argparse
