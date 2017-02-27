@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Hi-C data normalization workflow by experimental control ([Hi]-C [Li]'s [C]orrection: HiLiC)
+Hi-C data normalization workflow by experimental control
 """
 
 import argparse
@@ -84,10 +84,10 @@ class InputFileReader():
         utils.check_file_status(hic_read2_file_list)
         utils.check_file_status(control_read1_file_list)
         utils.check_file_status(control_read2_file_list)
-        self.hicRead1Files = hic_read1_file_list
-        self.hicRead2Files = hic_read2_file_list
-        self.controlRead1Files = control_read1_file_list
-        self.controlRead2Files = control_read2_file_list
+        self.hicRead1Files = sorted(hic_read1_file_list)
+        self.hicRead2Files = sorted(hic_read2_file_list)
+        self.controlRead1Files = sorted(control_read1_file_list)
+        self.controlRead2Files = sorted(control_read2_file_list)
 
     def build_file_dictionary(self, content):
         """
