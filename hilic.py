@@ -139,7 +139,7 @@ class InputFileReader():
             self.controlRead1Files = [ctl_r1_name]
         if len(self.controlRead2Files) > 1:
             ctl_r2_name = "ctl_r2_%s.bam" % str(genome)
-            samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r2_name)
+            samtools.run_samtools_concatenation(self.controlRead2Files, ctl_r2_name)
             self.controlRead2Files = [ctl_r2_name]
         concat_end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to combine all bam files.' % str(
