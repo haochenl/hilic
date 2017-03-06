@@ -11,6 +11,7 @@ import os
 import utils
 import alignment
 import samtools
+import time
 
 __author__ = 'Haochen Li'
 __version__ = 'v0.0.1'
@@ -27,11 +28,13 @@ class ProgramArguments():
         self.parser.add_argument("-q", "--mapq",
                                  help="the MAPQ score alignment filter threshold (default: lower than 30)",
                                  action="store", default=30, dest="mapq", metavar="INT", type=int)
+        self.parser.add_argument("-l", "--length",
+                                 help="the maximum insert length cutoff in bp (default: 1000)",
+                                 action="store", default=1000, dest="len", metavar="INT", type=int)
         self.parser.add_argument("-o", "--observed", help="output observed contact matrix/matrices simultanously",
                                  action="store_true", dest="observed")
         self.parser.add_argument("-i", "--ice", help="output ICE normalized contact matrix/matrices simultanously",
                                  action="store_true", dest="ice")
-        ##self.parser.add_argument("-l", "--log", help="output the program log file", action="store_true", dest="log")
         required_arguments = self.parser.add_argument_group("required arguments")
         required_arguments.add_argument("-c", "--config", help="path to the input configuration file", action="store",
                                         dest="config", metavar="<PATH_TO_FILE>", required=True)
@@ -119,9 +122,33 @@ class InputFileReader():
         alignment.align_from_reader(self, genome_fasta)
         samtools.compress_from_reader(self)
 
+    def concat_input_files(self, genome):
+        print >> sys.stderr, '[concatenate input files]'
+        concat_start_time = time.time()
+        if len(self.hicRead1Files) > 1:
+            hic_r1_name = "hic_r1_%s.bam" % str(genome)
+            samtools.run_samtools_concatenation(self.hicRead1Files, hic_r1_name)
+            self.hicRead1Files = [hic_r1_name]
+        if len(self.hicRead2Files) > 1:
+            hic_r2_name = "hic_r2_%s.bam" % str(genome)
+            samtools.run_samtools_concatenation(self.hicRead2Files, hic_r2_name)
+            self.hicRead2Files = [hic_r2_name]
+        if len(self.controlRead1Files) > 1:
+            ctl_r1_name = "ctl_r1_%s.bam" % str(genome)
+            samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r1_name)
+            self.controlRead1Files = [ctl_r1_name]
+        if len(self.controlRead2Files) > 1:
+            ctl_r2_name = "ctl_r2_%s.bam" % str(genome)
+            samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r2_name)
+            self.controlRead2Files = [ctl_r2_name]
+        concat_end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to combine all bam files.' % str(
+            round((concat_end_time - concat_start_time) / 60.0, 2))
+
 
 if __name__ == '__main__':
     args = ProgramArguments(__doc__, __version__).parse()
     input_reader = InputFileReader(args.config)
     input_reader.parse()
     input_reader.process_input_files(args.fasta)
+    input_reader.concat_input_files(args.genome)

@@ -53,7 +53,9 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
         filename = filename_list[i]
         name = os.path.splitext(filename)[0]
         extension = os.path.splitext(filename)[-1].lower()
-        if extension == ".fastq":
+        if extension == ".gz" and os.path.splitext(name)[-1].lower() == ".fastq":
+            name = os.path.splitext(name)[0]
+        if extension == ".fastq" or extension == ".gz":
             sam_name = name + ".sam"
             if filename not in aligned_set:
                 processes.append(run_bwa(filename, genome_fasta, sam_name))

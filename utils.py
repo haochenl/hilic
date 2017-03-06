@@ -6,6 +6,7 @@ The hilic common utilities
 
 import sys
 import os
+import pysam
 
 
 def count_complete_process(processes):

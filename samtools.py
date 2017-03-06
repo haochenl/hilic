@@ -57,12 +57,24 @@ def compress_sam_list(filename_list, compressed_set, processes):
         if extension == ".sam":
             bam_name = name + ".bam"
             if filename not in compressed_set:
-                processes.append(run_samtools(filename, bam_name))
+                processes.append(run_samtools_compression(filename, bam_name))
                 compressed_set.add(filename)
             filename_list[i] = bam_name
 
 
-def run_samtools(sam_filename, bam_filename):
+def run_samtools_concatenation(bam_file_list, combined_bam_filename):
+    """
+    Concatenate a list of bam file into a single bam file without disturbing the orignial order
+    :param bam_file_list: a list of bam files
+    :param combined_bam_filename: output combined bam file name
+    """
+    args = ["samtools", "cat", "-o", combined_bam_filename]
+    for filename in bam_file_list:
+        args.append(filename)
+    subprocess.call(args)
+
+
+def run_samtools_compression(sam_filename, bam_filename):
     """
     Run samtools to filter and compress into bam files
     :param sam_filename: name of the input sam file
