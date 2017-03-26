@@ -7,20 +7,23 @@ Handle Hi-C or control datasets to retrieve control reads
 import pysam
 import os
 import sys
+import time
 
 
 class PairReads():
     def __init__(self, read1_filename, read2_filename, type='rb'):
         self.read1 = pysam.AlignmentFile(read1_filename, type)
         self.read2 = pysam.AlignmentFile(read2_filename, type)
+        self.read1_filename = read1_filename
+        self.read2_filename = read2_filename
 
     def hic_separate(self, cutoff, mapq):
         self.read1.reset()
         self.read2.reset()
         itr1 = self.read1.fetch(until_eof=True)
         itr2 = self.read2.fetch(until_eof=True)
-        read1_name = os.path.splitext(read1_name)[0]
-        read2_name = os.path.splitext(read2_name)[0]
+        read1_name = os.path.splitext(self.read1_filename)[0]
+        read2_name = os.path.splitext(self.read2_filename)[0]
         hic1_output = pysam.AlignmentFile(read1_name + ".hic1.bam", 'wb', template=self.read1)
         hic2_output = pysam.AlignmentFile(read2_name + ".hic2.bam", 'wb', template=self.read2)
         ctl1_output = pysam.AlignmentFile(read1_name + ".ctl1.bam", 'wb', template=self.read1)
@@ -32,6 +35,7 @@ class PairReads():
         ctl_count = 0
         junk_count = 0
         print >> sys.stderr, '[process Hi-C alignment files to retrieve contact reads and control reads]'
+        start_time = time.time()
         for r1 in itr1:
             r2 = itr2.next()
             total += 1
@@ -61,6 +65,9 @@ class PairReads():
         ctl2_output.close()
         junk1_output.close()
         junk2_output.close()
+        end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to process all Hi-C bam files.' % str(
+                            round((end_time - start_time) / 60.0, 2))
 
 
 def is_unmapped_or_low_mapq(read, mapq):
