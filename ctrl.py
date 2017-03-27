@@ -24,47 +24,53 @@ class PairReads():
         itr2 = self.read2.fetch(until_eof=True)
         read1_name = os.path.splitext(self.read1_filename)[0]
         read2_name = os.path.splitext(self.read2_filename)[0]
+        output_prefix = "hic_combined"
         hic1_output = pysam.AlignmentFile(read1_name + ".hic1.bam", 'wb', template=self.read1)
         hic2_output = pysam.AlignmentFile(read2_name + ".hic2.bam", 'wb', template=self.read2)
-        ctl1_output = pysam.AlignmentFile(read1_name + ".ctl1.bam", 'wb', template=self.read1)
-        ctl2_output = pysam.AlignmentFile(read2_name + ".ctl2.bam", 'wb', template=self.read2)
-        junk1_output = pysam.AlignmentFile(read1_name + ".jk1.bam", 'wb', template=self.read1)
-        junk2_output = pysam.AlignmentFile(read2_name + ".jk2.bam", 'wb', template=self.read2)
+        ctl_output = pysam.AlignmentFile(output_prefix + ".ctl.bam", 'wb', template=self.read1)
+        junk_output = pysam.AlignmentFile(output_prefix + ".jk.bam", 'wb', template=self.read1)
         total = 0
-        hic_count = 0
+        hic_pair_count = 0
         ctl_count = 0
         junk_count = 0
         print >> sys.stderr, '[process Hi-C alignment files to retrieve contact reads and control reads]'
         start_time = time.time()
         for r1 in itr1:
             r2 = itr2.next()
-            total += 1
+            total += 2
             if r1.query_name == r2.query_name:
                 if is_junk(r1, r2, mapq):
-                    junk_count += 1
-                    junk1_output.write(r1)
-                    junk2_output.write(r2)
+                    junk_count += 2
+                    junk_output.write(r1)
+                    junk_output.write(r2)
                 elif is_hic(r1, r2, cutoff, mapq):
-                    hic_count += 1
+                    hic_pair_count += 1
                     hic1_output.write(r1)
                     hic2_output.write(r2)
                 else:
-                    ctl_count += 1
-                    ctl1_output.write(r1)
-                    ctl2_output.write(r2)
+                    if is_unmapped_or_low_mapq(r1, mapq):
+                        junk_count += 1
+                        junk_output.write(r1)
+                    else:
+                        ctl_count += 1
+                        ctl_output.write(r1)
+                    if is_unmapped_or_low_mapq(r2, mapq):
+                        junk_count += 1
+                        junk_output.write(r2)
+                    else:
+                        ctl_count += 1
+                        ctl_output.write(r2)
             else:
                 print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
                 sys.exit(1)
-        print >> sys.stderr, 'total number of paired reads processed: %s' % str(total)
-        print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
-        print >> sys.stderr, 'number of control paired reads identified: %s' % str(ctl_count)
-        print >> sys.stderr, 'number of junk paired reads: %s' % str(junk_count)
+        print >> sys.stderr, 'total number of reads processed: %s' % str(total)
+        print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_pair_count)
+        print >> sys.stderr, 'number of control reads identified: %s' % str(ctl_count)
+        print >> sys.stderr, 'number of junk reads: %s' % str(junk_count)
         hic1_output.close()
         hic2_output.close()
-        ctl1_output.close()
-        ctl2_output.close()
-        junk1_output.close()
-        junk2_output.close()
+        ctl_output.close()
+        junk_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process all Hi-C bam files.' % str(
                             round((end_time - start_time) / 60.0, 2))
