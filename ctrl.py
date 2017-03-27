@@ -72,8 +72,54 @@ class PairReads():
         ctl_output.close()
         junk_output.close()
         end_time = time.time()
-        print >> sys.stderr, 'cost %s minutes to process all Hi-C bam files.' % str(
+        print >> sys.stderr, 'cost %s minutes to process Hi-C bam files.' % str(
                             round((end_time - start_time) / 60.0, 2))
+
+    def control_separate(self, cutoff, mapq):
+        self.read1.reset()
+        self.read2.reset()
+        itr1 = self.read1.fetch(until_eof=True)
+        itr2 = self.read2.fetch(until_eof=True)
+        output_prefix = "ctrl_combined"
+        ctl_output = pysam.AlignmentFile(output_prefix + ".ctl.bam", 'wb', template=self.read1)
+        junk_output = pysam.AlignmentFile(output_prefix + ".jk.bam", 'wb', template=self.read1)
+        total = 0
+        ctl_count = 0
+        junk_count = 0
+        print >> sys.stderr, '[process control alignment files to retrieve control reads]'
+        start_time = time.time()
+        for r1 in itr1:
+            r2 = itr2.next()
+            total += 2
+            if r1.query_name == r2.query_name:
+                if is_hic(r1, r2, cutoff, mapq):
+                    junk_count += 2
+                    junk_output.write(r1)
+                    junk_output.write(r2)
+                else:
+                    if is_unmapped_or_low_mapq(r1, mapq):
+                        junk_count += 1
+                        junk_output.write(r1)
+                    else:
+                        ctl_count += 1
+                        ctl_output.write(r1)
+                    if is_unmapped_or_low_mapq(r2, mapq):
+                        junk_count += 1
+                        junk_output.write(r2)
+                    else:
+                        ctl_count += 1
+                        ctl_output.write(r2)
+            else:
+                print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
+                sys.exit(1)
+        print >> sys.stderr, 'total number of reads processed: %s' % str(total)
+        print >> sys.stderr, 'number of control reads identified: %s' % str(ctl_count)
+        print >> sys.stderr, 'number of junk reads: %s' % str(junk_count)
+        ctl_output.close()
+        junk_output.close()
+        end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to process control bam files.' % str(
+            round((end_time - start_time) / 60.0, 2))
 
 
 def is_unmapped_or_low_mapq(read, mapq):
