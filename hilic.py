@@ -155,3 +155,5 @@ if __name__ == '__main__':
     input_reader.concat_input_files(args.genome)
     hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
     hic_pair.hic_separate(args.len, args.mapq)
+    ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
+    ctl_pair.control_separate(args.len, args.mapq)
