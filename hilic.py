@@ -56,10 +56,12 @@ class InputFileReader():
     """
     The program config file parser and processor
     """
+    _enzymeKey = "Enzyme"
     _hicRead1Key = "HicRead1"
     _hicRead2Key = "HicRead2"
     _controlRead1Key = "ControlRead1"
     _controlRead2Key = "ControlRead2"
+    _outputPrefixKey = "OutputPrefix"
 
     def __init__(self, configFilePath):
         try:
@@ -72,6 +74,8 @@ class InputFileReader():
         self.hicRead2Files = []
         self.controlRead1Files = []
         self.controlRead2Files = []
+        self.enzyme = None
+        self.outputPrefix = None
 
     def parse(self):
         """
@@ -92,6 +96,14 @@ class InputFileReader():
         self.hicRead2Files = sorted(hic_read2_file_list)
         self.controlRead1Files = sorted(control_read1_file_list)
         self.controlRead2Files = sorted(control_read2_file_list)
+        if len(file_dictionary[self._enzymeKey]) != 1:
+            print >> sys.stderr, 'hilic does not support multi-enzyme Hi-C experiment.'
+            sys.exit(1)
+        self.enzyme = file_dictionary[self._enzymeKey][0]
+        if len(file_dictionary[self._outputPrefixKey]) != 1:
+            print >> sys.stderr, 'only one output file prefix is allowed in the config file.'
+            sys.exit(1)
+        self.outputPrefix = file_dictionary[self._outputPrefixKey][0]
 
     def build_file_dictionary(self, content):
         """
@@ -100,11 +112,11 @@ class InputFileReader():
         :return: file name dictionary for different sections
         """
         content_list = filter(None, [x.strip() for x in re.split('\[|\]', content)])
-        if len(content_list) != 8:
+        if len(content_list) != 12:
             print >> sys.stderr, 'unexpected config file format!'
             sys.exit(1)
         file_dictionary = {self._hicRead1Key: [], self._hicRead2Key: [], self._controlRead1Key: [],
-                           self._controlRead2Key: []}
+                           self._controlRead2Key: [], self._enzymeKey: [], self._outputPrefixKey: []}
         for key in file_dictionary:
             if key not in content_list:
                 print >> sys.stderr, 'expected header "[%s]" missing in the config file' % str(key)
@@ -127,19 +139,19 @@ class InputFileReader():
         print >> sys.stderr, '[concatenate input files]'
         concat_start_time = time.time()
         if len(self.hicRead1Files) > 1:
-            hic_r1_name = "hic_r1_%s.bam" % str(genome)
+            hic_r1_name = "%s_hic_r1_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.hicRead1Files, hic_r1_name)
             self.hicRead1Files = [hic_r1_name]
         if len(self.hicRead2Files) > 1:
-            hic_r2_name = "hic_r2_%s.bam" % str(genome)
+            hic_r2_name = "%s_hic_r2_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.hicRead2Files, hic_r2_name)
             self.hicRead2Files = [hic_r2_name]
         if len(self.controlRead1Files) > 1:
-            ctl_r1_name = "ctl_r1_%s.bam" % str(genome)
+            ctl_r1_name = "%s_ctl_r1_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r1_name)
             self.controlRead1Files = [ctl_r1_name]
         if len(self.controlRead2Files) > 1:
-            ctl_r2_name = "ctl_r2_%s.bam" % str(genome)
+            ctl_r2_name = "%s_ctl_r2_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.controlRead2Files, ctl_r2_name)
             self.controlRead2Files = [ctl_r2_name]
         concat_end_time = time.time()
@@ -154,6 +166,6 @@ if __name__ == '__main__':
     input_reader.process_input_files(args.fasta)
     input_reader.concat_input_files(args.genome)
     hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
-    hic_pair.hic_separate(args.len, args.mapq)
+    hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
     ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
-    ctl_pair.control_separate(args.len, args.mapq)
+    ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
