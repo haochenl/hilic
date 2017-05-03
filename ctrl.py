@@ -163,7 +163,7 @@ class PairReads():
 
 class SingleRead():
     def __init__(self, read_filename, type='rb'):
-        self.read = pysam.AlignmentFile(read1_filename, type)
+        self.read = pysam.AlignmentFile(read_filename, type)
         self.read_filename = read_filename
 
     def build_bed(self, vector, output_prefix):
@@ -175,6 +175,7 @@ class SingleRead():
             vector.populate(r)
         output_filename = output_prefix + ".bed"
         vector.write(output_filename)
+        end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to generate control bias vector.' % str(
             round((end_time - start_time) / 60.0, 2))
 
