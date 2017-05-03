@@ -79,7 +79,7 @@ class PairReads():
                 print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
                 sys.exit(1)
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
-        print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_pair_count)
+        print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
         print >> sys.stderr, 'number of single end read pairs identified: %s' % str(sgl_count)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
         print >> sys.stderr, 'number of re-ligation read pairs identified: %s' % str(rlg_count)
