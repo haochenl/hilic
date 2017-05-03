@@ -9,7 +9,7 @@ import os
 import sys
 import time
 import regex
-
+import matrix
 
 class PairReads():
     _siteDictionary = {"HindIII": "AGCTT"}
@@ -142,6 +142,40 @@ class PairReads():
         junk_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process control bam files.' % str(
+            round((end_time - start_time) / 60.0, 2))
+
+    def build_adj(self, matrix, output_prefix):
+        self.read1.reset()
+        self.read2.reset()
+        itr1 = self.read1.fetch(until_eof=True)
+        itr2 = self.read2.fetch(until_eof=True)
+        print >> sys.stderr, '[generate Hi-C contact matrix]'
+        start_time = time.time()
+        for r1 in itr1:
+            r2 = itr2.next()
+            matrix.populate(r1, r2)
+        output_filename = output_prefix + ".adj"
+        matrix.write(output_filename)
+        end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to generate Hi-C contact matrix.' % str(
+            round((end_time - start_time) / 60.0, 2))
+
+
+class SingleRead():
+    def __init__(self, read_filename, type='rb'):
+        self.read = pysam.AlignmentFile(read1_filename, type)
+        self.read_filename = read_filename
+
+    def build_bed(self, vector, output_prefix):
+        self.read.reset()
+        itr = self.read.fetch(until_eof=True)
+        print >> sys.stderr, '[generate control bias vector]'
+        start_time = time.time()
+        for r in itr:
+            vector.populate(r)
+        output_filename = output_prefix + ".bed"
+        vector.write(output_filename)
+        print >> sys.stderr, 'cost %s minutes to generate control bias vector.' % str(
             round((end_time - start_time) / 60.0, 2))
 
 

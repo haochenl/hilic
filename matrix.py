@@ -6,6 +6,8 @@ Generate matrices or vectors from Hi-C or control alignments
 
 import alabtools
 import os
+import datetime
+import sys
 
 
 class HicMatrix():
@@ -13,11 +15,12 @@ class HicMatrix():
     Create Hi-C contact matrix
     """
     def __init__(self, genome, resolution):
+        self.genome = genome
         self.resolution = resolution
         info_file_path = os.path.join(os.path.dirname(alabtools.__file__), "genomes/" + genome + ".info")
         info_content = info_file_path.read()
-        chr_array = [x.split()[0] for x in info_content.split("\n")]
-        length_array = [int(x.split()[1]) for x in info_content.split("\n")]
+        self.chr_array = [x.split()[0] for x in info_content.split("\n")]
+        self.length_array = [int(x.split()[1]) for x in info_content.split("\n")]
         start_idx_array = [0]
         for i in range(len(chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (length_array[i] - 1)/resolution + 1)
@@ -34,16 +37,52 @@ class HicMatrix():
         else:
             self.matrix[read2_idx][read1_idx - read2_idx] += 1
 
+    def write(self, output_filename):
+        print >> sys.stderr, 'write Hi-C contact matrix into contact adjacency list with resolution of %d' % self.resolution
+        output_adj = open(output_filename, 'w')
+        # write file header
+        output_adj.write("##fileformat=ADJ\n")
+        now = datetime.datetime.now()
+        output_adj.write("##filedate=%d-%d-%d\n" % (now.year, now.month, now.day))
+        output_adj.write("##resolution=%d\n" % self.resolution)
+        for i in range(len(self.chr_array)):
+            output_adj.write("##contig=<ID=%s,length=%d,assembly=%s>" % (self.chr_array[i], self.length_array[i], self.genome))
+        output_adj.write("#CHROM1\tSTART1\tEND1\tCHROM2\tSTART2\tEND2\tVALUE\n")
+        # write file body
+        for m in range(len(self.chr_array)):
+            chr1 = self.chr_array[m]
+            start_idx1 = self.chr_start_idx_dict[chr1]
+            for i in range(start_idx1, len(self.matrix)):
+                for n in range(m, len(self.chr_array)):
+                    chr2 = self.chr_array[n]
+                    start_idx2 = self.chr_start_idx_dict[chr2]
+                    end_idx2 = start_idx2 + (self.length_array[n] - 1)/self.resolution + 1
+                    for j in range(max(i, start_idx2), end_idx2):
+                        contact_value = self.matrix[i][j]
+                        if contact_value == 0:
+                            pass
+                        else:
+                            chr1_idx = i - start_idx1
+                            chr1_start = chr1_idx * self.resolution
+                            chr1_end = min((chr1_idx + 1) * self.resolution, self.length_array[m])
+                            chr2_idx = j - start_idx2
+                            chr2_start = chr2_idx * self.resolution
+                            chr2_end = min((chr2_idx + 1) * self.resolution, self.length_array[n])
+                            output_adj.write("%s\t%d\t%d\t%s\t%d\t%d\t%d\n" % (chr1, chr1_start, chr1_end, chr2, chr2_start, chr2_end, contact_value))
+        output_adj.close()
+
+
 class CtlVector():
     """
     Create control bias vector
     """
     def __init__(self, genome, resolution):
+        self.genome = genome
         self.resolution = resolution
         info_file_path = os.path.join(os.path.dirname(alabtools.__file__), "genomes/" + genome + ".info")
         info_content = info_file_path.read()
-        chr_array = [x.split()[0] for x in info_content.split("\n")]
-        length_array = [int(x.split()[1]) for x in info_content.split("\n")]
+        self.chr_array = [x.split()[0] for x in info_content.split("\n")]
+        self.length_array = [int(x.split()[1]) for x in info_content.split("\n")]
         start_idx_array = [0]
         for i in range(len(chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (length_array[i] - 1)/resolution + 1)
@@ -59,3 +98,24 @@ class CtlVector():
         else:
             pass
 
+    def write(self, output_filename):
+        print >> sys.stderr, 'write control vector into bed file with resolution of %d' % self.resolution
+        output_bed = open(output_filename, 'w')
+        # write file header
+        output_bed.write("##fileformat=BED\n")
+        now = datetime.datetime.now()
+        output_bed.write("##filedate=%d-%d-%d\n" % (now.year, now.month, now.day))
+        output_bed.write("##resolution=%d\n" % self.resolution)
+        for i in range(len(self.chr_array)):
+            output_bed.write("##contig=<ID=%s,length=%d,assembly=%s>" % (self.chr_array[i], self.length_array[i], self.genome))
+        output_bed.write("#CHROM\tSTART\tEND\tVALUE\n")
+        # write file body
+        for m in range(len(self.chr_array)):
+            chr = self.chr_array[m]
+            start_idx = self.chr_start_idx_dict[chr1]
+            for i in range(start_idx, len(self.matrix)):
+                chr_idx = i - start_idx
+                chr_start = chr_idx * self.resolution
+                chr_end = min((chr_idx + 1) * self.resolution, self.length_array[m])
+                output_bed.write("%s\t%d\t%d\t%d\n" % (chr, chr_start, chr_end, self.vector[i]))
+        output_bed.close()
