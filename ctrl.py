@@ -25,18 +25,17 @@ class PairReads():
         self.read2.reset()
         itr1 = self.read1.fetch(until_eof=True)
         itr2 = self.read2.fetch(until_eof=True)
-        read1_name = os.path.splitext(self.read1_filename)[0]
-        read2_name = os.path.splitext(self.read2_filename)[0]
-        hic1_output = pysam.AlignmentFile(output_prefix + ".hic1.bam", 'wb', template=self.read1)
-        hic2_output = pysam.AlignmentFile(output_prefix + ".hic2.bam", 'wb', template=self.read2)
+        hic_output_prefix = output_prefix + "_hic"
+        hic1_output = pysam.AlignmentFile(hic_output_prefix + ".hic1.bam", 'wb', template=self.read1)
+        hic2_output = pysam.AlignmentFile(hic_output_prefix + ".hic2.bam", 'wb', template=self.read2)
         # the control reads alignment output
-        ctl_output = pysam.AlignmentFile(output_prefix + ".ctl.bam", 'wb', template=self.read1)
+        ctl_output = pysam.AlignmentFile(hic_output_prefix + ".ctl.bam", 'wb', template=self.read1)
         # the religation reads alignment output
-        rlg_output = pysam.AlignmentFile(output_prefix + ".rlg.bam", 'wb', template=self.read1)
+        rlg_output = pysam.AlignmentFile(hic_output_prefix + ".rlg.bam", 'wb', template=self.read1)
         # the single end aligned reads alignment output
-        sgl_output = pysam.AlignmentFile(output_prefix + ".sgl.bam", 'wb', template=self.read1)
+        sgl_output = pysam.AlignmentFile(hic_output_prefix + ".sgl.bam", 'wb', template=self.read1)
         # the junk alignment output
-        junk_output = pysam.AlignmentFile(output_prefix + ".jk.bam", 'wb', template=self.read1)
+        junk_output = pysam.AlignmentFile(hic_output_prefix + ".jk.bam", 'wb', template=self.read1)
         total = 0
         hic_count = 0
         ctl_count = 0
@@ -100,9 +99,10 @@ class PairReads():
         self.read2.reset()
         itr1 = self.read1.fetch(until_eof=True)
         itr2 = self.read2.fetch(until_eof=True)
-        ctl_output = pysam.AlignmentFile(output_prefix + ".ctl.bam", 'wb', template=self.read1)
-        misc_output = pysam.AlignmentFile(output_prefix + ".misc.bam", 'wb', template=self.read1)
-        junk_output = pysam.AlignmentFile(output_prefix + ".jk.bam", 'wb', template=self.read1)
+        ctl_output_prefix = output_prefix + "_ctl"
+        ctl_output = pysam.AlignmentFile(ctl_output_prefix + ".ctl.bam", 'wb', template=self.read1)
+        misc_output = pysam.AlignmentFile(ctl_output_prefix + ".misc.bam", 'wb', template=self.read1)
+        junk_output = pysam.AlignmentFile(ctl_output_prefix + ".jk.bam", 'wb', template=self.read1)
         total = 0
         ctl_count = 0
         misc_count = 0
