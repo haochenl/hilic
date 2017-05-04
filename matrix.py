@@ -197,15 +197,16 @@ class MatrixNorm():
         contact_matrix.krnorm()
         return contact_matrix
 
-    def plot_heatmaps(contact_matrix, clip_max, figure_prefix, method):
-        directory = os.path.join(os.getcwd(), figure_prefix)
-        try:
-            os.stat(directory)
-        except:
-            os.mkdir(directory)
-        contact_matrix.plot(os.path.join(directory, figure_prefix + "_genome.pdf"), clip_max=clip_max, title="genome(%s)" % method)
-        for chrom in contact_matrix.genome.chroms:
-            contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), clip_max=clip_max, title="%s(%s)" % (chrom, method))
+
+def plot_heatmaps(contact_matrix, clip_max, figure_prefix, method):
+    directory = os.path.join(os.getcwd(), figure_prefix)
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+    contact_matrix.plot(os.path.join(directory, figure_prefix + "_genome.pdf"), clip_max=clip_max, title="genome(%s)" % method)
+    for chrom in contact_matrix.genome.chroms:
+        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), clip_max=clip_max, title="%s(%s)" % (chrom, method))
 
 
 

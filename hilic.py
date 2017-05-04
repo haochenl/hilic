@@ -35,8 +35,8 @@ class ProgramArguments():
                                  action="store", default=1000, dest="len", metavar="INT", type=int)
         self.parser.add_argument("-o", "--observed", help="output observed contact matrix/matrices simultanously",
                                  action="store_true", dest="observed")
-        self.parser.add_argument("-i", "--ice", help="output ICE normalized contact matrix/matrices simultanously",
-                                 action="store_true", dest="ice")
+        self.parser.add_argument("-k", "--kr", help="output KR normalized contact matrix/matrices simultanously",
+                                 action="store_true", dest="kr")
         required_arguments = self.parser.add_argument_group("required arguments")
         required_arguments.add_argument("-c", "--config", help="path to the input configuration file", action="store",
                                         dest="config", metavar="<PATH_TO_FILE>", required=True)
@@ -177,6 +177,15 @@ if __name__ == '__main__':
     ##matrix_pair.build_adj(hic_matrix, input_reader.outputPrefix + "_hic")
     ##ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
     ##ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
-    ctl_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
-    ctl_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_ctl.ctl.bam")
-    ctl_bias_read.build_bed(ctl_bias_vector, input_reader.outputPrefix + "_ctl")
+    ##ctl_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
+    ##ctl_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_ctl.ctl.bam")
+    ##ctl_bias_read.build_bed(ctl_bias_vector, input_reader.outputPrefix + "_ctl")
+    mat_hic_ctlnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_hic.bed").create_ctlnorm_matrix(args.genome, args.resolution[0])
+    matrix.plot_heatmaps(mat_hic_ctlnorm, 10, "hic_ctlnorm", "ctlnorm")
+    mat_ctl_ctlnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_ctl.bed").create_ctlnorm_matrix(args.genome, args.resolution[0])
+    matrix.plot_heatmaps(mat_ctl_ctlnorm, 10, "ctl_ctlnorm", "ctlnorm")
+    if args.kr:
+        mat_hic_krnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_hic.bed").create_krnorm_matrix(args.genome, args.resolution[0])
+        matrix.plot_heatmaps(mat_hic_krnorm, 10, "hic_krnorm", "krnorm")
+
+
