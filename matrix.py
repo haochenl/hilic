@@ -8,6 +8,7 @@ import alabtools
 import os
 import datetime
 import sys
+import numpy as np
 
 
 class HicMatrix():
@@ -28,7 +29,7 @@ class HicMatrix():
                 pass
             else:
                 self.chr_array.append(fields[0])
-                self.length_array.append(fields[1])
+                self.length_array.append(int(fields[1]))
         start_idx_array = [0]
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
@@ -90,7 +91,7 @@ class CtlVector():
     """
     Create control bias vector
     """
-    def __init__(self, genome, resolution):
+    def __init__(self, genome, resolution, chrom_filter):
         self.genome = genome
         self.resolution = resolution
         info_file_path = os.path.join(os.path.dirname(alabtools.__file__), "genomes/" + genome + ".info")
@@ -104,7 +105,7 @@ class CtlVector():
                 pass
             else:
                 self.chr_array.append(fields[0])
-                self.length_array.append(fields[1])
+                self.length_array.append(int(fields[1]))
         start_idx_array = [0]
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
@@ -144,22 +145,68 @@ class CtlVector():
                 output_bed.write("%s\t%d\t%d\t%d\t%d\n" % (chrom, i, chr_start, chr_end, self.vector[i]))
         output_bed.close()
 
-class AdjReader():
-    def __init__(self, filename):
-        self.reader = open(filename, 'r')
 
-    def build_sss_matrix(self):
+class MatrixNorm():
+    def __init__(self, adj_filename, bed_filename):
+        self.adj_filename = adj_filename
+        self.bed_filename = bed_filename
+
+    def build_sss_matrix(self, dim):
         obj = []
         row = []
         col = []
-        with self.reader as f:
+        with open(self.adj_filename, 'r') as f:
             for line in f:
                 if line.startswith("#"):
                     pass
                 else:
                     fields = line.strip().split()
-                    row.append(fields[1])
-                    col.append(fields[5])
-                    obj.append(fields[8])
+                    row.append(int(fields[1]))
+                    col.append(int(fields[5]))
+                    obj.append(int(fields[8]))
         matrix_input = (obj, (row, col))
-        return alabtools.matrix.sss_matrix(matrix_input)
+        return alabtools.matrix.sss_matrix(matrix_input, shape=(dim, dim))
+
+    def build_bias_vector(self, cutoff=10):
+        bias = []
+        with open(self.bed_filename, 'r') as f:
+            for line in f:
+                if line.startswith("#"):
+                    pass
+                else:
+                    fields = line.strip().split()
+                    value = int(fields[4])
+                    if value < cutoff:
+                        bias.append(0)
+                    else:
+                        bias.append(1000.0/value)
+        return np.asarray(bias).astype(np.float32)
+
+    def create_ctlnorm_matrix(self, genome, resolution):
+        contact_matrix = alabtools.api.Contactmatrix(genome=genome, resolution=resolution)
+        bias_vector = self.build_bias_vector()
+        contact_matrix.matrix = self.build_sss_matrix(len(bias_vector))
+        contact_matrix.matrix.norm(bias_vector)
+        return contact_matrix
+
+    def create_krnorm_matrix(self, genome, resolution):
+        contact_matrix = alabtools.api.Contactmatrix(genome=genome, resolution=resolution)
+        bias_vector = self.build_bias_vector()
+        contact_matrix.matrix = self.build_sss_matrix(len(bias_vector))
+        contact_matrix.matrix.maskLowCoverage()
+        contact_matrix.krnorm()
+        return contact_matrix
+
+    def plot_heatmaps(contact_matrix, clip_max, figure_prefix, method):
+        directory = os.path.join(os.getcwd(), figure_prefix)
+        try:
+            os.stat(directory)
+        except:
+            os.mkdir(directory)
+        contact_matrix.plot(os.path.join(directory, figure_prefix + "_genome.pdf"), clip_max=clip_max, title="genome(%s)" % method)
+        for chrom in contact_matrix.genome.chroms:
+            contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), clip_max=clip_max, title="%s(%s)" % (chrom, method))
+
+
+
+
