@@ -58,7 +58,8 @@ class HicMatrix():
         for m in range(len(self.chr_array)):
             chr1 = self.chr_array[m]
             start_idx1 = self.chr_start_idx_dict[chr1]
-            for i in range(start_idx1, len(self.matrix)):
+            end_idx1 = start_idx1 + (self.length_array[m] - 1)/self.resolution + 1
+            for i in range(start_idx1, end_idx1):
                 for n in range(m, len(self.chr_array)):
                     chr2 = self.chr_array[n]
                     start_idx2 = self.chr_start_idx_dict[chr2]
