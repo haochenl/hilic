@@ -14,14 +14,21 @@ class HicMatrix():
     """
     Create Hi-C contact matrix
     """
-    def __init__(self, genome, resolution):
+    def __init__(self, genome, resolution, chrom_filter):
         self.genome = genome
         self.resolution = resolution
         info_file_path = os.path.join(os.path.dirname(alabtools.__file__), "genomes/" + genome + ".info")
         info_reader = open(info_file_path, 'r')
         info_content = info_reader.read().strip()
-        self.chr_array = [x.split()[0] for x in info_content.split("\n")]
-        self.length_array = [int(x.split()[1]) for x in info_content.split("\n")]
+        self.chr_array = []
+        self.length_array = []
+        for line in info_content.split("\n"):
+            fields = line.split()
+            if fields[0] in chrom_filter:
+                pass
+            else:
+                self.chr_array.append(fields[0])
+                self.length_array.append(fields[1])
         start_idx_array = [0]
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
@@ -89,8 +96,15 @@ class CtlVector():
         info_file_path = os.path.join(os.path.dirname(alabtools.__file__), "genomes/" + genome + ".info")
         info_reader = open(info_file_path, 'r')
         info_content = info_reader.read().strip()
-        self.chr_array = [x.split()[0] for x in info_content.split("\n")]
-        self.length_array = [int(x.split()[1]) for x in info_content.split("\n")]
+        self.chr_array = []
+        self.length_array = []
+        for line in info_content.split("\n"):
+            fields = line.split()
+            if fields[0] in chrom_filter:
+                pass
+            else:
+                self.chr_array.append(fields[0])
+                self.length_array.append(fields[1])
         start_idx_array = [0]
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
@@ -129,3 +143,23 @@ class CtlVector():
                 chr_end = min((chr_idx + 1) * self.resolution, self.length_array[m])
                 output_bed.write("%s\t%d\t%d\t%d\t%d\n" % (chrom, i, chr_start, chr_end, self.vector[i]))
         output_bed.close()
+
+class AdjReader():
+    def __init__(self, filename):
+        self.reader = open(filename, 'r')
+
+    def build_sss_matrix(self):
+        obj = []
+        row = []
+        col = []
+        with self.reader as f:
+            for line in f:
+                if line.startswith("#"):
+                    pass
+                else:
+                    fields = line.strip().split()
+                    row.append(fields[1])
+                    col.append(fields[5])
+                    obj.append(fields[8])
+        matrix_input = (obj, (row, col))
+        return alabtools.matrix.sss_matrix(matrix_input)
