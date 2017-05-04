@@ -149,10 +149,14 @@ class PairReads():
         self.read2.reset()
         itr1 = self.read1.fetch(until_eof=True)
         itr2 = self.read2.fetch(until_eof=True)
-        print >> sys.stderr, '[generate Hi-C contact matrix]'
+        print >> sys.stderr, 'populating Hi-C contact matrix with read pairs'
         start_time = time.time()
+        total = 0
         for r1 in itr1:
             r2 = itr2.next()
+            total += 1
+            if total % 5000000 == 0:
+                print >> sys.stderr, 'processed %s millions Hi-C contacts.' % str(total/1000000)
             matrix.populate(r1, r2)
         output_filename = output_prefix + ".adj"
         matrix.write(output_filename)
@@ -169,7 +173,7 @@ class SingleRead():
     def build_bed(self, vector, output_prefix):
         self.read.reset()
         itr = self.read.fetch(until_eof=True)
-        print >> sys.stderr, '[generate control bias vector]'
+        print >> sys.stderr, 'populating control bias vector'
         start_time = time.time()
         for r in itr:
             vector.populate(r)

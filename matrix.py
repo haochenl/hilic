@@ -26,9 +26,11 @@ class HicMatrix():
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
         self.chr_start_idx_dict = dict(zip(self.chr_array, start_idx_array))
+        print >> sys.stderr, '[generate Hi-C contact matrix]'
         # construct the zero triangle contact matrix
         matrix_dimension = self.chr_start_idx_dict[self.chr_array[-1]] + (self.length_array[-1] - 1)/resolution + 1
         self.matrix = [[0] * (matrix_dimension - row) for row in range(matrix_dimension)]
+        print >> sys.stderr, 'initialized Hi-C contact matrix.'
 
     def populate(self, read1, read2):
         if read1.reference_name in self.chr_start_idx_dict and read2.reference_name in self.chr_start_idx_dict:
@@ -62,7 +64,7 @@ class HicMatrix():
                     start_idx2 = self.chr_start_idx_dict[chr2]
                     end_idx2 = start_idx2 + (self.length_array[n] - 1)/self.resolution + 1
                     for j in range(max(i, start_idx2), end_idx2):
-                        contact_value = self.matrix[i][j]
+                        contact_value = self.matrix[i][j-i]
                         if contact_value == 0:
                             pass
                         else:
@@ -92,6 +94,7 @@ class CtlVector():
         for i in range(len(self.chr_array) - 1):
             start_idx_array.append(start_idx_array[i] + (self.length_array[i] - 1)/resolution + 1)
         self.chr_start_idx_dict = dict(zip(self.chr_array, start_idx_array))
+        print >> sys.stderr, '[generate control bias vector]'
         # construct the zero control vector
         vector_dimension = self.chr_start_idx_dict[self.chr_array[-1]] + (self.length_array[-1] - 1)/resolution + 1
         self.vector = [0] * vector_dimension
