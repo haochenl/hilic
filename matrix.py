@@ -62,7 +62,7 @@ class HicMatrix():
         output_adj.write("##resolution=%d\n" % self.resolution)
         for i in range(len(self.chr_array)):
             output_adj.write("##contig=<ID=%s,length=%d,assembly=%s>\n" % (self.chr_array[i], self.length_array[i], self.genome))
-        output_adj.write("#CHROM1\tINDEX1\tSTART1\tEND1\tCHROM2\tINDEX2\tSTART2\tEND2\tVALUE\n")
+        output_adj.write("#CHROM1\tSTART1\tEND1\tINDEX1\tCHROM2\tSTART2\tEND2\tINDEX2\tVALUE\n")
         # write file body
         for m in range(len(self.chr_array)):
             chr1 = self.chr_array[m]
@@ -84,7 +84,7 @@ class HicMatrix():
                             chr2_idx = j - start_idx2
                             chr2_start = chr2_idx * self.resolution
                             chr2_end = min((chr2_idx + 1) * self.resolution, self.length_array[n])
-                            output_adj.write("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n" % (chr1, i, chr1_start, chr1_end, chr2, j, chr2_start, chr2_end, contact_value))
+                            output_adj.write("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\n" % (chr1, chr1_start, chr1_end, i, chr2, chr2_start, chr2_end, j, contact_value))
         output_adj.close()
 
 
@@ -133,7 +133,7 @@ class CtlVector():
         output_bed.write("##resolution=%d\n" % self.resolution)
         for i in range(len(self.chr_array)):
             output_bed.write("##contig=<ID=%s,length=%d,assembly=%s>\n" % (self.chr_array[i], self.length_array[i], self.genome))
-        output_bed.write("#CHROM\tINDEX\tSTART\tEND\tVALUE\n")
+        output_bed.write("#CHROM\tSTART\tEND\tINDEX\tVALUE\n")
         # write file body
         for m in range(len(self.chr_array)):
             chrom = self.chr_array[m]
@@ -143,7 +143,7 @@ class CtlVector():
                 chr_idx = i - start_idx
                 chr_start = chr_idx * self.resolution
                 chr_end = min((chr_idx + 1) * self.resolution, self.length_array[m])
-                output_bed.write("%s\t%d\t%d\t%d\t%d\n" % (chrom, i, chr_start, chr_end, self.vector[i]))
+                output_bed.write("%s\t%d\t%d\t%d\t%d\n" % (chrom, chr_start, chr_end, i, self.vector[i]))
         output_bed.close()
 
 
@@ -164,8 +164,8 @@ class MatrixNorm():
                     pass
                 else:
                     fields = line.strip().split()
-                    row.append(int(fields[1]))
-                    col.append(int(fields[5]))
+                    row.append(int(fields[3]))
+                    col.append(int(fields[7]))
                     obj.append(int(fields[8]))
         matrix_input = (obj, (row, col))
         return alabtools.matrix.sss_matrix(matrix_input, shape=(dim, dim))
