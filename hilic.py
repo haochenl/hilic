@@ -42,7 +42,7 @@ class ProgramArguments():
         required_arguments.add_argument("-c", "--config", help="path to the input configuration file", action="store",
                                         dest="config", metavar="<PATH_TO_FILE>", required=True)
         required_arguments.add_argument("-g", "--genome", help="reference genome of the input data", action="store",
-                                        dest="genome", choices=["hg19", "hg38", "mm9", "mm10"], metavar="<hg19 OR hg38 or mm9 or mm10>",
+                                        dest="genome", choices=["hg19", "hg38", "mm9", "mm10"], metavar="<hg19 OR hg38 OR mm9 OR mm10>",
                                         required=True)
         required_arguments.add_argument("-f", "--fasta", help="path to the bwa indexed reference genome fasta file",
                                         action="store",
