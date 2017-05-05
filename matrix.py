@@ -5,6 +5,7 @@ Generate matrices or vectors from Hi-C or control alignments
 """
 
 import alabtools
+import alabtools.plots
 import os
 import datetime
 import sys
@@ -150,6 +151,8 @@ class MatrixNorm():
     def __init__(self, adj_filename, bed_filename):
         self.adj_filename = adj_filename
         self.bed_filename = bed_filename
+        self.bias_vector = None
+        self.contact_matrix = None
 
     def build_sss_matrix(self, dim):
         obj = []
@@ -180,34 +183,31 @@ class MatrixNorm():
                         bias.append(0)
                     else:
                         bias.append(1000.0/value)
-        return np.asarray(bias).astype(np.float32)
+        self.bias_vector = np.asarray(bias).astype(np.float32)
 
-    def create_ctlnorm_matrix(self, genome, resolution):
+    def create_raw_matrix(self, genome, resolution):
         contact_matrix = alabtools.api.Contactmatrix(genome=genome, resolution=resolution)
-        bias_vector = self.build_bias_vector()
-        contact_matrix.matrix = self.build_sss_matrix(len(bias_vector))
-        contact_matrix.matrix.norm(bias_vector)
-        return contact_matrix
+        self.build_bias_vector()
+        contact_matrix.matrix = self.build_sss_matrix(len(self.bias_vector))
+        self.contact_matrix = contact_matrix
 
-    def create_krnorm_matrix(self, genome, resolution):
-        contact_matrix = alabtools.api.Contactmatrix(genome=genome, resolution=resolution)
-        bias_vector = self.build_bias_vector()
-        contact_matrix.matrix = self.build_sss_matrix(len(bias_vector))
-        contact_matrix.matrix.maskLowCoverage()
-        contact_matrix.krnorm()
-        return contact_matrix
+    def ctlnorm(self):
+        self.contact_matrix.matrix.norm(self.bias_vector)
+
+    def krnorm(self):
+        self.contact_matrix.maskLowCoverage()
+        self.contact_matrix.krnorm()
 
 
-def plot_heatmaps(contact_matrix, clip_max, figure_prefix, method):
+def plot_heatmaps(contact_matrix, figure_prefix, method, clip_max=None):
     directory = os.path.join(os.getcwd(), figure_prefix)
     try:
         os.stat(directory)
     except:
         os.mkdir(directory)
-    contact_matrix.plot(os.path.join(directory, figure_prefix + "_genome.pdf"), clip_max=clip_max, title="genome(%s)" % method)
+    stella = alabtools.plots.make_colormap([(0,0,0),(0,0,1),0.0,(0,0,1),(1,1,0),0.05,(1,1,0),(1,1,1)],'stella')
+    bloody = alabtools.plots.make_colormap([(1,1,1),(1,0,0),0.5,(1,0,0),(0,0,0)],'bloody')
     for chrom in contact_matrix.genome.chroms:
-        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), clip_max=clip_max, title="%s(%s)" % (chrom, method))
-
-
-
+        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
+        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_bloody_%s.pdf" % chrom), clip_max=clip_max, cmap=bloody, title="%s(%s)" % (chrom, method))
 

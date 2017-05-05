@@ -14,6 +14,7 @@ import samtools
 import time
 import ctrl
 import matrix
+import copy
 
 __author__ = 'Haochen Li'
 __version__ = 'v0.0.1'
@@ -180,12 +181,33 @@ if __name__ == '__main__':
     ##ctl_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
     ##ctl_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_ctl.ctl.bam")
     ##ctl_bias_read.build_bed(ctl_bias_vector, input_reader.outputPrefix + "_ctl")
-    mat_hic_ctlnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_hic.bed").create_ctlnorm_matrix(args.genome, args.resolution[0])
-    matrix.plot_heatmaps(mat_hic_ctlnorm, 10, "hic_ctlnorm", "ctlnorm")
-    mat_ctl_ctlnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_ctl.bed").create_ctlnorm_matrix(args.genome, args.resolution[0])
-    matrix.plot_heatmaps(mat_ctl_ctlnorm, 10, "ctl_ctlnorm", "ctlnorm")
+    print >> sys.stderr, '[load raw Hi-C matrix]'
+    raw_matrix = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_ctl.bed")
+    raw_matrix.create_raw_matrix(args.genome, args.resolution[0])
+    if args.observed:
+        raw_matrix.contact_matrix.save(input_reader.outputPrefix + "_observed_%d" % args.resolution[0])
+        print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
+        matrix.plot_heatmaps(raw_matrix.contact_matrix, "heatmap_observed", "observed", 10)
+    print >> sys.stderr, '[matrix normalization with Hi-C control bias file]'
+    hic_ctlnorm = copy.deepcopy(raw_matrix)
+    hic_ctlnorm.bed_filename = input_reader.outputPrefix + "_hic.bed"
+    hic_ctlnorm.build_bias_vector()
+    hic_ctlnorm.ctlnorm()
+    hic_ctlnorm.contact_matrix.save(input_reader.outputPrefix + "_hic_ctlnorm_%d" % args.resolution[0])
+    print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
+    matrix.plot_heatmaps(hic_ctlnorm.contact_matrix, "heatmap_hic_ctlnorm", "hic_ctlnorm", 10)
+    print >> sys.stderr, '[matrix normalization with control experiment bias file]'
+    ctl_ctlnorm = copy.deepcopy(raw_matrix)
+    ctl_ctlnorm.ctlnorm()
+    ctl_ctlnorm.contact_matrix.save(input_reader.outputPrefix + "_ctl_ctlnorm_%d" % args.resolution[0])
+    print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
+    matrix.plot_heatmaps(ctl_ctlnorm.contact_matrix, "heatmap_ctl_ctlnorm", "control_ctlnorm", 2)
     if args.kr:
-        mat_hic_krnorm = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_hic.bed").create_krnorm_matrix(args.genome, args.resolution[0])
-        matrix.plot_heatmaps(mat_hic_krnorm, 10, "hic_krnorm", "krnorm")
+        print >> sys.stderr, '[matrix KR normalization]'
+        hic_krnorm = copy.deepcopy(raw_matrix)
+        hic_krnorm.krnorm()
+        hic_krnorm.contact_matrix.save(input_reader.outputPrefix + "_krnorm_%d" % args.resolution[0])
+        print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
+        matrix.plot_heatmaps(hic_krnorm.contact_matrix, "heatmap_krnorm", "krnorm", 10)
 
 
