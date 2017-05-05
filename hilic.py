@@ -42,7 +42,7 @@ class ProgramArguments():
         required_arguments.add_argument("-c", "--config", help="path to the input configuration file", action="store",
                                         dest="config", metavar="<PATH_TO_FILE>", required=True)
         required_arguments.add_argument("-g", "--genome", help="reference genome of the input data", action="store",
-                                        dest="genome", choices=["hg19", "hg38"], metavar="<hg19 OR hg38>",
+                                        dest="genome", choices=["hg19", "hg38", "mm9", "mm10"], metavar="<hg19 OR hg38 or mm9 or mm10>",
                                         required=True)
         required_arguments.add_argument("-f", "--fasta", help="path to the bwa indexed reference genome fasta file",
                                         action="store",
@@ -78,6 +78,7 @@ class InputFileReader():
         self.controlRead2Files = []
         self.enzyme = None
         self.outputPrefix = None
+        self.isControlSeparate = None
 
     def parse(self):
         """
@@ -98,6 +99,10 @@ class InputFileReader():
         self.hicRead2Files = sorted(hic_read2_file_list)
         self.controlRead1Files = sorted(control_read1_file_list)
         self.controlRead2Files = sorted(control_read2_file_list)
+        if self.hicRead1Files == self.controlRead1Files and self.hicRead2Files == self.controlRead2Files:
+            self.isControlSeparate = False
+        else:
+            self.isControlSeparate = True
         if len(file_dictionary[self._enzymeKey]) != 1:
             print >> sys.stderr, 'hilic does not support multi-enzyme Hi-C experiment.'
             sys.exit(1)
@@ -148,60 +153,77 @@ class InputFileReader():
             hic_r2_name = "%s_hic_r2_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.hicRead2Files, hic_r2_name)
             self.hicRead2Files = [hic_r2_name]
-        if len(self.controlRead1Files) > 1:
-            ctl_r1_name = "%s_ctl_r1_%s.bam" % (self.outputPrefix, str(genome))
-            samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r1_name)
-            self.controlRead1Files = [ctl_r1_name]
-        if len(self.controlRead2Files) > 1:
-            ctl_r2_name = "%s_ctl_r2_%s.bam" % (self.outputPrefix, str(genome))
-            samtools.run_samtools_concatenation(self.controlRead2Files, ctl_r2_name)
-            self.controlRead2Files = [ctl_r2_name]
+        if self.isControlSeparate:
+            if len(self.controlRead1Files) > 1:
+                ctl_r1_name = "%s_ctl_r1_%s.bam" % (self.outputPrefix, str(genome))
+                samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r1_name)
+                self.controlRead1Files = [ctl_r1_name]
+            if len(self.controlRead2Files) > 1:
+                ctl_r2_name = "%s_ctl_r2_%s.bam" % (self.outputPrefix, str(genome))
+                samtools.run_samtools_concatenation(self.controlRead2Files, ctl_r2_name)
+                self.controlRead2Files = [ctl_r2_name]
+        else:
+            self.controlRead1Files = [hic_r1_name]
+            self.controlRead2Files = [hic_r2_name]
         concat_end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to combine all bam files.' % str(
             round((concat_end_time - concat_start_time) / 60.0, 2))
 
 
 if __name__ == '__main__':
+    ## parse command line arguments
     args = ProgramArguments(__doc__, __version__).parse()
+    ## parse input config file
     input_reader = InputFileReader(args.config)
     input_reader.parse()
+    ## alignment input files and concatenate them if necessary
     input_reader.process_input_files(args.fasta)
     input_reader.concat_input_files(args.genome)
+    ## separate Hi-C pairs into contacts and control
+    hic_pair = ctrl.PairReads(input_reader.hicRead2Files[0], input_reader.hicRead2Files[0])
+    hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
     filter_set = {"chrY", "chrM"}
-    ##hic_pair = ctrl.PairReads(input_reader.hicRead2Files[0], input_reader.hicRead2Files[0])
-    ##hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
-    ##hic_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
-    ##hic_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_hic.ctl.bam")
-    ##hic_bias_read.build_bed(hic_bias_vector, input_reader.outputPrefix + "_hic")
-    ##hic_matrix = matrix.HicMatrix(args.genome, args.resolution[0], filter_set)
-    ##matrix_pair = ctrl.PairReads(input_reader.outputPrefix + "_hic.hic1.bam", input_reader.outputPrefix + "_hic.hic2.bam")
-    ##matrix_pair.build_adj(hic_matrix, input_reader.outputPrefix + "_hic")
-    ##ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
-    ##ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
-    ##ctl_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
-    ##ctl_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_ctl.ctl.bam")
-    ##ctl_bias_read.build_bed(ctl_bias_vector, input_reader.outputPrefix + "_ctl")
+    ## build Hi-C control bias vector and output to bed file
+    hic_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
+    hic_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_hic.ctl.bam")
+    hic_bias_read.build_bed(hic_bias_vector, input_reader.outputPrefix + "_hic")
+    ## read Hi-C contacts and output to adjacency list
+    hic_matrix = matrix.HicMatrix(args.genome, args.resolution[0], filter_set)
+    matrix_pair = ctrl.PairReads(input_reader.outputPrefix + "_hic.hic1.bam", input_reader.outputPrefix + "_hic.hic2.bam")
+    matrix_pair.build_adj(hic_matrix, input_reader.outputPrefix + "_hic")
+    ## process control experiment files if exists
+    if input_reader.isControlSeparate:
+        ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
+        ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
+        ctl_bias_vector = matrix.CtlVector(args.genome, args.resolution[0], filter_set)
+        ctl_bias_read = ctrl.SingleRead(input_reader.outputPrefix + "_ctl.ctl.bam")
+        ctl_bias_read.build_bed(ctl_bias_vector, input_reader.outputPrefix + "_ctl")
+    ## generate Hi-C contact matrix
     print >> sys.stderr, '[load raw Hi-C matrix]'
-    raw_matrix = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_ctl.bed")
+    raw_matrix = matrix.MatrixNorm(input_reader.outputPrefix + "_hic.adj", input_reader.outputPrefix + "_hic.bed")
     raw_matrix.create_raw_matrix(args.genome, args.resolution[0])
     if args.observed:
         raw_matrix.contact_matrix.save(input_reader.outputPrefix + "_observed_%d" % args.resolution[0])
         print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
         matrix.plot_heatmaps(raw_matrix.contact_matrix, "heatmap_observed", "observed", 10)
+    ## do Hi-C control normalization
     print >> sys.stderr, '[matrix normalization with Hi-C control bias file]'
     hic_ctlnorm = copy.deepcopy(raw_matrix)
-    hic_ctlnorm.bed_filename = input_reader.outputPrefix + "_hic.bed"
-    hic_ctlnorm.build_bias_vector()
     hic_ctlnorm.ctlnorm()
     hic_ctlnorm.contact_matrix.save(input_reader.outputPrefix + "_hic_ctlnorm_%d" % args.resolution[0])
     print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
     matrix.plot_heatmaps(hic_ctlnorm.contact_matrix, "heatmap_hic_ctlnorm", "hic_ctlnorm", 10)
-    print >> sys.stderr, '[matrix normalization with control experiment bias file]'
-    ctl_ctlnorm = copy.deepcopy(raw_matrix)
-    ctl_ctlnorm.ctlnorm()
-    ctl_ctlnorm.contact_matrix.save(input_reader.outputPrefix + "_ctl_ctlnorm_%d" % args.resolution[0])
-    print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
-    matrix.plot_heatmaps(ctl_ctlnorm.contact_matrix, "heatmap_ctl_ctlnorm", "control_ctlnorm", 2)
+    ## do experiment control normalization if necessary
+    if input_reader.isControlSeparate:
+        print >> sys.stderr, '[matrix normalization with control experiment bias file]'
+        ctl_ctlnorm = copy.deepcopy(raw_matrix)
+        ctl_ctlnorm.bed_filename = input_reader.outputPrefix + "_ctl.bed"
+        ctl_ctlnorm.build_bias_vector()
+        ctl_ctlnorm.ctlnorm()
+        ctl_ctlnorm.contact_matrix.save(input_reader.outputPrefix + "_ctl_ctlnorm_%d" % args.resolution[0])
+        print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
+        matrix.plot_heatmaps(ctl_ctlnorm.contact_matrix, "heatmap_ctl_ctlnorm", "control_ctlnorm", 2)
+    ## do kr normalization if specified
     if args.kr:
         print >> sys.stderr, '[matrix KR normalization]'
         hic_krnorm = copy.deepcopy(raw_matrix)

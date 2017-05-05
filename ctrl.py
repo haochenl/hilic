@@ -12,7 +12,7 @@ import regex
 import matrix
 
 class PairReads():
-    _siteDictionary = {"HindIII": "AGCTT"}
+    _siteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG"}
 
     def __init__(self, read1_filename, read2_filename, type='rb'):
         self.read1 = pysam.AlignmentFile(read1_filename, type)
