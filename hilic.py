@@ -180,7 +180,7 @@ if __name__ == '__main__':
     input_reader.process_input_files(args.fasta)
     input_reader.concat_input_files(args.genome)
     ## separate Hi-C pairs into contacts and control
-    hic_pair = ctrl.PairReads(input_reader.hicRead2Files[0], input_reader.hicRead2Files[0])
+    hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
     hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
     filter_set = {"chrY", "chrM"}
     ## build Hi-C control bias vector and output to bed file
