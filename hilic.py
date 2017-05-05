@@ -145,21 +145,21 @@ class InputFileReader():
     def concat_input_files(self, genome):
         print >> sys.stderr, '[concatenate input files]'
         concat_start_time = time.time()
+        hic_r1_name = "%s_hic_r1_%s.bam" % (self.outputPrefix, str(genome))
+        hic_r2_name = "%s_hic_r2_%s.bam" % (self.outputPrefix, str(genome))
         if len(self.hicRead1Files) > 1:
-            hic_r1_name = "%s_hic_r1_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.hicRead1Files, hic_r1_name)
             self.hicRead1Files = [hic_r1_name]
         if len(self.hicRead2Files) > 1:
-            hic_r2_name = "%s_hic_r2_%s.bam" % (self.outputPrefix, str(genome))
             samtools.run_samtools_concatenation(self.hicRead2Files, hic_r2_name)
             self.hicRead2Files = [hic_r2_name]
         if self.isControlSeparate:
+            ctl_r1_name = "%s_ctl_r1_%s.bam" % (self.outputPrefix, str(genome))
+            ctl_r2_name = "%s_ctl_r2_%s.bam" % (self.outputPrefix, str(genome))
             if len(self.controlRead1Files) > 1:
-                ctl_r1_name = "%s_ctl_r1_%s.bam" % (self.outputPrefix, str(genome))
                 samtools.run_samtools_concatenation(self.controlRead1Files, ctl_r1_name)
                 self.controlRead1Files = [ctl_r1_name]
             if len(self.controlRead2Files) > 1:
-                ctl_r2_name = "%s_ctl_r2_%s.bam" % (self.outputPrefix, str(genome))
                 samtools.run_samtools_concatenation(self.controlRead2Files, ctl_r2_name)
                 self.controlRead2Files = [ctl_r2_name]
         else:
