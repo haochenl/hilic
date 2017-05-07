@@ -140,7 +140,6 @@ class InputFileReader():
         """
         print >> sys.stderr, '[start processing input files]'
         alignment.align_from_reader(self, genome_fasta)
-        samtools.compress_from_reader(self)
 
     def concat_input_files(self, genome):
         print >> sys.stderr, '[concatenate input files]'
@@ -176,12 +175,12 @@ if __name__ == '__main__':
     ## parse input config file
     input_reader = InputFileReader(args.config)
     input_reader.parse()
-    #### alignment input files and concatenate them if necessary
-    ##input_reader.process_input_files(args.fasta)
-    ##input_reader.concat_input_files(args.genome)
-    #### separate Hi-C pairs into contacts and control
-    ##hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
-    ##hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
+    ## alignment input files and concatenate them if necessary
+    input_reader.process_input_files(args.fasta)
+    input_reader.concat_input_files(args.genome)
+    ## separate Hi-C pairs into contacts and control
+    hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
+    hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
     ## process control experiment files if exists
     if input_reader.isControlSeparate:
         ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
