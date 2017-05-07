@@ -61,7 +61,7 @@ def align_input_list(filename_list, genome_fasta, aligned_set, processes):
             if filename not in aligned_set:
                 processes.append(run_bwa_and_filter(filename, genome_fasta, bam_name))
                 aligned_set.add(filename)
-            filename_list[i] = sam_name
+            filename_list[i] = bam_name
         elif extension == ".sam":
             print >> sys.stderr, 'only hilic processed bam alignment files are supported as input.'
             sys.exit(1)
@@ -87,9 +87,8 @@ def run_bwa_and_filter(fastq_filename, genome_fasta, bam_filename):
     p1_args = ["bwa", "mem", "-5", genome_fasta, fastq_filename]
     p1 = subprocess.Popen(p1_args, stdout=subprocess.PIPE, stderr=DEVNULL)
     p2_args = ["samtools", "view", "-S", "-F", "2048", "-h", "-"]
-    p2 = subprocess.Popen(p2_args, stdout=p1.stdout, stderr=DEVNULL)
+    p2 = subprocess.Popen(p2_args, stdin=p1.stdout, stdout=subprocess.PIPE, stderr=DEVNULL)
     p3_args = ["samtools", "view", "-bS", "-"]
     p3 = subprocess.Popen(p3_args, stdin=p2.stdout, stdout=f, stderr=DEVNULL)
     p1.stdout.close()
-    p2.stdout.close()
     return p3, bam_filename
