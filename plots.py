@@ -41,3 +41,4 @@ def plot_diff_heatmaps(filename, matrix1, matrix2, title=None):
         color = alabtools.plots.make_colormap([(1.0-blueness,1.0-blueness,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.0,0.0)], 'bwr')
         alabtools.plots.plotmatrix(filename, mat_diff, cmap=color, title=title)
 
+

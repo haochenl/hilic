@@ -178,7 +178,7 @@ if __name__ == '__main__':
     input_reader = InputFileReader(args.config)
     input_reader.parse()
     ## if not build directly from separate bam files, process the configuration input files
-    if not hasattr(input_reader, "build"):
+    if not hasattr(args, "build"):
         ## alignment input files and concatenate them if necessary
         input_reader.process_input_files(args.fasta)
         input_reader.concat_input_files(args.genome)
