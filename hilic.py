@@ -221,7 +221,7 @@ if __name__ == '__main__':
         print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
         matrix.plot_heatmaps(hic_ctlnorm.contact_matrix, "heatmap_hic_ctlnorm_%d" % res, "hic_ctlnorm", 10)
         ## do experiment control normalization if necessary
-        if hasattr(input_reader, "isControlSeparate"):
+        if input_reader.isControlSeparate:
             print >> sys.stderr, '[matrix normalization with control experiment bias file for resolution: %d]' % res
             ctl_ctlnorm = copy.deepcopy(raw_matrix)
             ctl_ctlnorm.bed_filename = input_reader.outputPrefix + "_ctl_%d.bed" % res
