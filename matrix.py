@@ -192,7 +192,7 @@ class MatrixNorm():
         self.contact_matrix = contact_matrix
 
     def ctlnorm(self):
-        self.contact_matrix.matrix.norm(self.bias_vector)
+        self.contact_matrix.normalize(self.bias_vector)
 
     def krnorm(self):
         self.contact_matrix.maskLowCoverage()
