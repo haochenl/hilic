@@ -210,4 +210,3 @@ def plot_heatmaps(contact_matrix, figure_prefix, method, clip_max=None):
     for chrom in contact_matrix.genome.chroms:
         contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
         contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_bloody_%s.pdf" % chrom), clip_max=clip_max, cmap=bloody, title="%s(%s)" % (chrom, method))
-

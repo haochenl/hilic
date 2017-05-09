@@ -38,6 +38,8 @@ class ProgramArguments():
                                  action="store_true", dest="observed")
         self.parser.add_argument("-k", "--kr", help="output KR normalized contact matrix/matrices simultanously",
                                  action="store_true", dest="kr")
+        self.parser.add_argument("-b", "--build", help="build Hi-C contact matrix and do normalization directly from separated bam files",
+                                 action="store_true", dest="build")
         required_arguments = self.parser.add_argument_group("required arguments")
         required_arguments.add_argument("-c", "--config", help="path to the input configuration file", action="store",
                                         dest="config", metavar="<PATH_TO_FILE>", required=True)
@@ -175,16 +177,19 @@ if __name__ == '__main__':
     ## parse input config file
     input_reader = InputFileReader(args.config)
     input_reader.parse()
-    ## alignment input files and concatenate them if necessary
-    input_reader.process_input_files(args.fasta)
-    input_reader.concat_input_files(args.genome)
-    ## separate Hi-C pairs into contacts and control
-    hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
-    hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
-    ## process control experiment files if exists
-    if input_reader.isControlSeparate:
-        ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
-        ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
+    ## if not build directly from separate bam files, process the configuration input files
+    if not hasattr(input_reader, "build"):
+        ## alignment input files and concatenate them if necessary
+        input_reader.process_input_files(args.fasta)
+        input_reader.concat_input_files(args.genome)
+        ## separate Hi-C pairs into contacts and control
+        hic_pair = ctrl.PairReads(input_reader.hicRead1Files[0], input_reader.hicRead2Files[0])
+        hic_pair.hic_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
+        ## process control experiment files if exists
+        if input_reader.isControlSeparate:
+            ctl_pair = ctrl.PairReads(input_reader.controlRead1Files[0], input_reader.controlRead2Files[0])
+            ctl_pair.control_separate(args.len, args.mapq, input_reader.enzyme, input_reader.outputPrefix)
+    ## chromosomes filtered from the genome info resource file
     filter_set = {"chrY", "chrM"}
     for res in args.resolution:
         ## build Hi-C control bias vector and output to bed file
@@ -216,7 +221,7 @@ if __name__ == '__main__':
         print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
         matrix.plot_heatmaps(hic_ctlnorm.contact_matrix, "heatmap_hic_ctlnorm_%d" % res, "hic_ctlnorm", 10)
         ## do experiment control normalization if necessary
-        if input_reader.isControlSeparate:
+        if hasattr(input_reader, "isControlSeparate"):
             print >> sys.stderr, '[matrix normalization with control experiment bias file for resolution: %d]' % res
             ctl_ctlnorm = copy.deepcopy(raw_matrix)
             ctl_ctlnorm.bed_filename = input_reader.outputPrefix + "_ctl_%d.bed" % res
@@ -226,7 +231,7 @@ if __name__ == '__main__':
             print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
             matrix.plot_heatmaps(ctl_ctlnorm.contact_matrix, "heatmap_ctl_ctlnorm_%d" % res, "control_ctlnorm", 2)
         ## do kr normalization if specified
-        if args.kr:
+        if hasattr(args, "kr"):
             print >> sys.stderr, '[matrix KR normalization for resolution: %d]' % res
             hic_krnorm = copy.deepcopy(raw_matrix)
             hic_krnorm.krnorm()
