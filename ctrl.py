@@ -13,6 +13,7 @@ import matrix
 
 class PairReads():
     _siteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
+    _junctionDictionary = {"HindIII": "AAGCTAGCTT", "DpnII": "GATCGATC", "NcoI": "CCATGCATGG", "MboI": "GATCGATC"}
 
     def __init__(self, read1_filename, read2_filename, type='rb'):
         self.read1 = pysam.AlignmentFile(read1_filename, type)
@@ -48,33 +49,43 @@ class PairReads():
             r2 = itr2.next()
             total += 1
             if r1.query_name == r2.query_name:
+                is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
+                is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
                 # write the single end reads output
-                if is_unmapped_or_low_mapq(r1, mapq) != is_unmapped_or_low_mapq(r2, mapq):
+                if is_r1_invalid != is_r2_invalid:
                     sgl_count += 1
-                    sgl_output.write(r1)
-                    sgl_output.write(r2)
-                # write the junk output
-                if is_junk(r1, r2, mapq):
+                    if not is_r1_invalid:
+                        sgl_output.write(r1)
+                    if not is_r2_invalid:
+                        sgl_output.write(r2)
+                if is_r1_invalid and is_r2_invalid:
                     junk_count += 1
                     junk_output.write(r1)
                     junk_output.write(r2)
                 # write the Hi-C output
-                elif is_hic(r1, r2, cutoff, mapq):
+                elif is_hic(r1, r2, cutoff, is_r1_invalid, is_r2_invalid):
                     hic_count += 1
                     hic1_output.write(r1)
                     hic2_output.write(r2)
                 else:
                     enzyme_site = self._siteDictionary[enzyme]
+                    ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(r1, enzyme_site) or is_ctl(r2, enzyme_site):
+                    if is_ctl(r1, r2, enzyme_site, ligation_junction, is_r1_invalid, is_r2_invalid):
                         ctl_count += 1
-                        ctl_output.write(r1)
-                        ctl_output.write(r2)
+                        if not is_r1_invalid:
+                            ctl_output.write(r1)
+                        if not is_r2_invalid:
+                            ctl_output.write(r2)
                     # write the re-ligation reads into output
-                    elif is_unmapped_or_low_mapq(r1, mapq) == is_unmapped_or_low_mapq(r2, mapq):
+                    elif is_rlg(r1, r2, is_r1_invalid, is_r2_invalid):
                         rlg_count += 1
                         rlg_output.write(r1)
                         rlg_output.write(r2)
+                    else:
+                        junk_count += 1
+                        junk_output.write(r1)
+                        junk_output.write(r2)
             else:
                 print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
                 sys.exit(1)
@@ -113,23 +124,30 @@ class PairReads():
             r2 = itr2.next()
             total += 1
             if r1.query_name == r2.query_name:
+                is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
+                is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
                 # write into junk output if read pair meets Hi-C conditions
-                if is_hic(r1, r2, cutoff, mapq):
+                if is_hic(r1, r2, cutoff, is_r1_invalid, is_r2_invalid):
                     junk_count += 1
                     junk_output.write(r1)
                     junk_output.write(r2)
                 else:
                     enzyme_site = self._siteDictionary[enzyme]
+                    ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(r1, enzyme_site) or is_ctl(r2, enzyme_site):
+                    if is_ctl(r1, r2, enzyme_site, ligation_junction, is_r1_invalid, is_r2_invalid):
                         ctl_count += 1
-                        ctl_output.write(r1)
-                        ctl_output.write(r2)
+                        if not is_r1_invalid:
+                            ctl_output.write(r1)
+                        if not is_r2_invalid:
+                            ctl_output.write(r2)
                     # write the miscellaneous control read to output
                     else:
                         misc_count += 1
-                        misc_output.write(r1)
-                        misc_output.write(r2)
+                        if not is_r1_invalid:
+                            misc_output.write(r1)
+                        if not is_r2_invalid:
+                            misc_output.write(r2)
             else:
                 print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
                 sys.exit(1)
@@ -192,17 +210,61 @@ def is_junk(read1, read2, mapq):
     return is_unmapped_or_low_mapq(read1, mapq) and is_unmapped_or_low_mapq(read2, mapq)
 
 
-def is_hic(read1, read2, cutoff, mapq):
-    if is_unmapped_or_low_mapq(read1, mapq) or is_unmapped_or_low_mapq(read2, mapq):
+def strand(read):
+    """
+    Returns:
+    reverse strand: +1
+    forward strand: -1
+    """
+    return read.is_reverse * 2 - 1
+
+
+def is_hic(read1, read2, cutoff, is_r1_invalid, is_r2_invalid):
+    if is_r1_invalid or is_r2_invalid:
         return False
     if read1.reference_id != read2.reference_id:
         return True
     else:
-        if abs(read1.pos - read2.pos) > cutoff:
+        if read1.pos * strand(read1) + read2.pos * strand(read2) > cutoff:
             return True
         else:
             return False
 
 
-def is_ctl(read, site):
-    return regex.match("(^%s){e<=1}" % site, read.query_sequence) is not None
+def is_ctl(read1, read2, site, junction, is_read1_invalid, is_read2_invalid):
+    is_read1_match = is_match(read1, site)
+    is_read2_match = is_match(read2, site)
+    if is_read1_match or is_read2_match:
+        if is_junction(read1, site, junction) or is_junction(read2, site, junction):
+            return False
+        elif not is_read1_invalid and not is_read2_invalid:
+            if read1.pos * strand(read1) + read2.pos * strand(read2) >= 0:
+                return True
+            else:
+                return False
+        else:
+            return True
+    else:
+        return False
+
+
+def is_match(read, site):
+    return regex.match("^%s" % site, read.query_sequence) is not None
+
+
+def is_junction(read, site, junction):
+    if read.cigartuples is None or len(read.cigartuples) == 1:
+        return False
+    else:
+        return junction in read.query_sequence
+
+
+def is_rlg(read1, read2, is_read1_invalid, is_read2_invalid):
+    if is_read1_invalid == is_read2_invalid:
+        if read1.pos * strand(read1) + read2.pos * strand(read2) >= 0:
+            return True
+        else:
+            return False
+    else:
+        return False
+

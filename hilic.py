@@ -178,7 +178,7 @@ if __name__ == '__main__':
     input_reader = InputFileReader(args.config)
     input_reader.parse()
     ## if not build directly from separate bam files, process the configuration input files
-    if not hasattr(args, "build"):
+    if not args.build:
         ## alignment input files and concatenate them if necessary
         input_reader.process_input_files(args.fasta)
         input_reader.concat_input_files(args.genome)
@@ -231,7 +231,7 @@ if __name__ == '__main__':
             print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
             matrix.plot_heatmaps(ctl_ctlnorm.contact_matrix, "heatmap_ctl_ctlnorm_%d" % res, "control_ctlnorm", 2)
         ## do kr normalization if specified
-        if hasattr(args, "kr"):
+        if args.kr:
             print >> sys.stderr, '[matrix KR normalization for resolution: %d]' % res
             hic_krnorm = copy.deepcopy(raw_matrix)
             hic_krnorm.krnorm()
