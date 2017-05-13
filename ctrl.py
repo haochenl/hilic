@@ -225,7 +225,7 @@ def is_hic(read1, read2, cutoff, is_r1_invalid, is_r2_invalid):
     if read1.reference_id != read2.reference_id:
         return True
     else:
-        if read1.pos * strand(read1) + read2.pos * strand(read2) > cutoff:
+        if abs(read1.pos - read2.pos) > cutoff:
             return True
         else:
             return False
