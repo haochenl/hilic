@@ -19,7 +19,7 @@ class PairReads():
         self.bam_reader = pysam.AlignmentFile(bam_filename, type)
         self.bam_filename = bam_filename
 
-    def hic_separate(self, cutoff, mapq, enzyme, output_prefix):
+    def hic_separate(self, cutoff, mapq, enzyme, output_prefix, threads):
         # the hic reads alignment output
         hic_filename = output_prefix + "_hic.bam"
         hic_output = pysam.AlignmentFile(hic_filename, 'wb', template=self.bam_reader)
@@ -95,14 +95,14 @@ class PairReads():
             round((end_time - start_time) / 60.0, 2))
         print >> sys.stderr, '[sort the Hi-C output bam files]'
         start_time = time.time()
-        pysam.sort(hic_filename, output_prefix + "_hic_sorted")
-        pysam.sort(ctl_filename, output_prefix + "_hctl_sorted")
-        pysam.sort(rlg_filename, output_prefix + "_rlg_sorted")
+        pysam.sort("-@", str(threads), hic_filename, output_prefix + "_hic_sorted")
+        pysam.sort("-@", str(threads), ctl_filename, output_prefix + "_hctl_sorted")
+        pysam.sort("-@", str(threads), rlg_filename, output_prefix + "_rlg_sorted")
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
 
-    def control_separate(self, cutoff, mapq, enzyme, output_prefix):
+    def control_separate(self, cutoff, mapq, enzyme, output_prefix, threads):
         ctl_filename = output_prefix + "_xctl.bam"
         ctl_output = pysam.AlignmentFile(ctl_filename, 'wb', template=self.bam_reader)
         misc_filename = output_prefix + "_misc.bam"
@@ -163,8 +163,8 @@ class PairReads():
             round((end_time - start_time) / 60.0, 2))
         print >> sys.stderr, '[sort the control output bam files]'
         start_time = time.time()
-        pysam.sort(ctl_filename, output_prefix + "_xctl_sorted")
-        pysam.sort(misc_filename, output_prefix + "_misc_sorted")
+        pysam.sort("-@", str(threads), ctl_filename, output_prefix + "_xctl_sorted")
+        pysam.sort("-@", str(threads), misc_filename, output_prefix + "_misc_sorted")
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
             round((end_time - start_time) / 60.0, 2))

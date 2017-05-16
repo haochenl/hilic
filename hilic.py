@@ -34,6 +34,9 @@ class ProgramArguments():
         self.parser.add_argument("-l", "--length",
                                  help="the maximum insert length cutoff in bp (default: 1000)",
                                  action="store", default=1000, dest="len", metavar="INT", type=int)
+        self.parser.add_argument("-t", "--threads",
+                                 help="the number of additional threads to use (default: 4)",
+                                 action="store", default=4, dest="threads", metavar="INT", type=int)
         required_arguments = self.parser.add_argument_group("required arguments")
         required_arguments.add_argument("-i", "--input", help="path to the paired bam file",
                                         dest="input", metavar="<PATH_TO_FILE>", required=True)
@@ -170,8 +173,8 @@ if __name__ == '__main__':
     if args.type == "hic":
         ## separate Hi-C pairs into contacts and control
         hic_pair = ctrl.PairReads(args.input)
-        hic_pair.hic_separate(args.len, args.mapq, args.enzyme, args.outputPrefix)
+        hic_pair.hic_separate(args.len, args.mapq, args.enzyme, args.outputPrefix, args.threads)
     if args.type == "ctl":
         ## process control experiment files if exists
         ctl_pair = ctrl.PairReads(args.input)
-        ctl_pair.control_separate(args.len, args.mapq, args.enzyme, args.outputPrefix)
+        ctl_pair.control_separate(args.len, args.mapq, args.enzyme, args.outputPrefix, args.threads)
