@@ -24,12 +24,12 @@ def count_complete_process(processes):
     return count
 
 
-def check_file_status(filename_list):
+def check_file_status(*args):
     """
     Check a list of file names and exit if not a regular file
     :param filename_list: list of file names
     """
-    for filename in filename_list:
+    for filename in args:
         if os.path.isdir(filename):
             print >> sys.stderr, 'file name is a directory not a regular file: %s' % str(filename)
             print >> sys.stderr, 'directory path not supported in the config file'
