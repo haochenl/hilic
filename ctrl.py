@@ -55,7 +55,7 @@ class PairReads():
                         sgl_output.write(last)
                     if not is_current_invalid:
                         sgl_output.write(current)
-                if is_current_invalid and is_last_invalid:
+                elif is_current_invalid and is_last_invalid:
                     junk_count += 1
                     junk_output.write(last)
                     junk_output.write(current)
