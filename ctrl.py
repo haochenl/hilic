@@ -40,8 +40,7 @@ class PairReads():
         self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
         last = None
-        while reader:
-            current = reader.next()
+        for current in reader:
             if last is None:
                 last = current
                 continue
@@ -117,8 +116,7 @@ class PairReads():
         self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
         last = None
-        while reader:
-            current = reader.next()
+        for current in reader:
             if last.query_name == current.query_name:
                 total += 1
                 is_last_invalid = is_unmapped_or_low_mapq(last, mapq)
