@@ -37,7 +37,6 @@ class PairReads():
         junk_count = 0
         print >> sys.stderr, '[process Hi-C alignment files to retrieve contact reads and control reads]'
         start_time = time.time()
-        self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
         last = None
         for current in reader:
@@ -112,7 +111,6 @@ class PairReads():
         junk_count = 0
         print >> sys.stderr, '[process control alignment files to retrieve control reads]'
         start_time = time.time()
-        self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
         last = None
         for current in reader:
