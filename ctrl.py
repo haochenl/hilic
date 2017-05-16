@@ -95,9 +95,9 @@ class PairReads():
             round((end_time - start_time) / 60.0, 2))
         print >> sys.stderr, '[sort the Hi-C output bam files]'
         start_time = time.time()
-        pysam.sort("-@", str(threads), hic_filename, output_prefix + "_hic_sorted")
-        pysam.sort("-@", str(threads), ctl_filename, output_prefix + "_hctl_sorted")
-        pysam.sort("-@", str(threads), rlg_filename, output_prefix + "_rlg_sorted")
+        pysam.sort("-@", str(threads), hic_filename, "-o", output_prefix + "_hic_sorted")
+        pysam.sort("-@", str(threads), ctl_filename, "-o", output_prefix + "_hctl_sorted")
+        pysam.sort("-@", str(threads), rlg_filename, "-o", output_prefix + "_rlg_sorted")
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
@@ -163,8 +163,8 @@ class PairReads():
             round((end_time - start_time) / 60.0, 2))
         print >> sys.stderr, '[sort the control output bam files]'
         start_time = time.time()
-        pysam.sort("-@", str(threads), ctl_filename, output_prefix + "_xctl_sorted")
-        pysam.sort("-@", str(threads), misc_filename, output_prefix + "_misc_sorted")
+        pysam.sort("-@", str(threads), ctl_filename, "-o", output_prefix + "_xctl_sorted")
+        pysam.sort("-@", str(threads), misc_filename, "-o", output_prefix + "_misc_sorted")
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
