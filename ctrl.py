@@ -39,54 +39,55 @@ class PairReads():
         start_time = time.time()
         self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
-        r1 = reader.next()
-        r2 = reader.next()
+        last = None
         while reader:
-            if r1.query_name == r2.query_name:
+            current = reader.next()
+            if last is None:
+                last = current
+                continue
+            if current.query_name == last.query_name:
                 total += 1
-                is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
-                is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
+                is_last_invalid = is_unmapped_or_low_mapq(last, mapq)
+                is_current_invalid = is_unmapped_or_low_mapq(current, mapq)
                 # write the single end reads output
-                if is_r1_invalid != is_r2_invalid:
+                if is_current_invalid != is_last_invalid:
                     sgl_count += 1
-                    if not is_r1_invalid:
-                        sgl_output.write(r1)
-                    if not is_r2_invalid:
-                        sgl_output.write(r2)
-                if is_r1_invalid and is_r2_invalid:
+                    if not is_last_invalid:
+                        sgl_output.write(last)
+                    if not is_current_invalid:
+                        sgl_output.write(current)
+                if is_current_invalid and is_last_invalid:
                     junk_count += 1
-                    junk_output.write(r1)
-                    junk_output.write(r2)
+                    junk_output.write(last)
+                    junk_output.write(current)
                 # write the Hi-C output
-                elif is_hic(r1, r2, cutoff, is_r1_invalid, is_r2_invalid):
+                elif is_hic(current, last, cutoff, is_current_invalid, is_last_invalid):
                     hic_count += 1
-                    hic_output.write(r1)
-                    hic_output.write(r2)
+                    hic_output.write(last)
+                    hic_output.write(current)
                 else:
                     enzyme_site = self._siteDictionary[enzyme]
                     ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(r1, r2, enzyme_site, ligation_junction, is_r1_invalid, is_r2_invalid):
+                    if is_ctl(current, last, enzyme_site, ligation_junction, is_current_invalid, is_last_invalid):
                         ctl_count += 1
-                        if not is_r1_invalid:
-                            ctl_output.write(r1)
-                        if not is_r2_invalid:
-                            ctl_output.write(r2)
+                        if not is_last_invalid:
+                            ctl_output.write(last)
+                        if not is_current_invalid:
+                            ctl_output.write(current)
                     # write the re-ligation reads into output
-                    elif is_rlg(r1, r2, is_r1_invalid, is_r2_invalid):
+                    elif is_rlg(current, last, is_current_invalid, is_last_invalid):
                         rlg_count += 1
-                        rlg_output.write(r1)
-                        rlg_output.write(r2)
+                        rlg_output.write(last)
+                        rlg_output.write(current)
                     else:
                         junk_count += 1
-                        junk_output.write(r1)
-                        junk_output.write(r2)
-                r1 = reader.next()
-                r2 = reader.next()
+                        junk_output.write(last)
+                        junk_output.write(current)
+                last = None
             else:
-                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (r1.query_name, r2.query_name)
-                r1 = r2
-                r2 = reader.next()
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (current.query_name, last.query_name)
+                last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
         print >> sys.stderr, 'number of single end read pairs identified: %s' % str(sgl_count)
@@ -115,41 +116,38 @@ class PairReads():
         start_time = time.time()
         self.bam_reader.reset()
         reader = self.bam_reader.fetch(until_eof=True)
-        r1 = reader.next()
-        r2 = reader.next()
+        last = None
         while reader:
-            if r1.query_name == r2.query_name:
+            current = reader.next()
+            if last.query_name == current.query_name:
                 total += 1
-                is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
-                is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
+                is_last_invalid = is_unmapped_or_low_mapq(last, mapq)
+                is_current_invalid = is_unmapped_or_low_mapq(current, mapq)
                 # write into junk output if read pair meets Hi-C conditions
-                if is_hic(r1, r2, cutoff, is_r1_invalid, is_r2_invalid):
+                if is_hic(last, current, cutoff, is_last_invalid, is_current_invalid):
                     junk_count += 1
-                    junk_output.write(r1)
-                    junk_output.write(r2)
+                    junk_output.write(last)
+                    junk_output.write(current)
                 else:
                     enzyme_site = self._siteDictionary[enzyme]
                     ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(r1, r2, enzyme_site, ligation_junction, is_r1_invalid, is_r2_invalid):
+                    if is_ctl(last, current, enzyme_site, ligation_junction, is_last_invalid, is_current_invalid):
                         ctl_count += 1
-                        if not is_r1_invalid:
-                            ctl_output.write(r1)
-                        if not is_r2_invalid:
-                            ctl_output.write(r2)
+                        if not is_last_invalid:
+                            ctl_output.write(last)
+                        if not is_current_invalid:
+                            ctl_output.write(current)
                     # write the miscellaneous control read to output
                     else:
                         misc_count += 1
-                        if not is_r1_invalid:
-                            misc_output.write(r1)
-                        if not is_r2_invalid:
-                            misc_output.write(r2)
-                r1 = reader.next()
-                r2 = reader.next()
+                        if not is_last_invalid:
+                            misc_output.write(last)
+                        if not is_current_invalid:
+                            misc_output.write(current)
             else:
-                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (r1.query_name, r2.query_name)
-                r1 = r2
-                r2 = reader.next()
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (last.query_name, current.query_name)
+                last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
         print >> sys.stderr, 'number of miscellaneous read pairs identified: %s' % str(misc_count)
