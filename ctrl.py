@@ -20,20 +20,22 @@ class PairReads():
         self.bam_filename = bam_filename
 
     def hic_separate(self, cutoff, mapq, enzyme, output_prefix):
-        hic_output = pysam.AlignmentFile(output_prefix + "_hic.bam", 'wb', template=self.bam_reader)
+        # the hic reads alignment output
+        hic_filename = output_prefix + "_hic.bam"
+        hic_output = pysam.AlignmentFile(hic_filename, 'wb', template=self.bam_reader)
         # the control reads alignment output
-        ctl_output = pysam.AlignmentFile(output_prefix + "_ctl.bam", 'wb', template=self.bam_reader)
+        ctl_filename = output_prefix + "_hctl.bam"
+        ctl_output = pysam.AlignmentFile(ctl_filename, 'wb', template=self.bam_reader)
         # the religation reads alignment output
-        rlg_output = pysam.AlignmentFile(output_prefix + "_rlg.bam", 'wb', template=self.bam_reader)
-        # the single end aligned reads alignment output
-        sgl_output = pysam.AlignmentFile(output_prefix + "_sgl.bam", 'wb', template=self.bam_reader)
+        rlg_filename = output_prefix + "_rlg.bam"
+        rlg_output = pysam.AlignmentFile(rlg_filename, 'wb', template=self.bam_reader)
         # the junk alignment output
-        junk_output = pysam.AlignmentFile(output_prefix + "_jk.bam", 'wb', template=self.bam_reader)
+        junk_filename = output_prefix + "_hjk.bam"
+        junk_output = pysam.AlignmentFile(junk_filename, 'wb', template=self.bam_reader)
         total = 0
         hic_count = 0
         ctl_count = 0
         rlg_count = 0
-        sgl_count = 0
         junk_count = 0
         print >> sys.stderr, '[process Hi-C alignment files to retrieve contact reads and control reads]'
         start_time = time.time()
@@ -47,13 +49,6 @@ class PairReads():
                 total += 1
                 is_last_invalid = is_unmapped_or_low_mapq(last, mapq)
                 is_current_invalid = is_unmapped_or_low_mapq(current, mapq)
-                # write the single end reads output
-                if is_current_invalid != is_last_invalid:
-                    sgl_count += 1
-                    if not is_last_invalid:
-                        sgl_output.write(last)
-                    if not is_current_invalid:
-                        sgl_output.write(current)
                 if is_current_invalid and is_last_invalid:
                     junk_count += 1
                     junk_output.write(last)
@@ -88,23 +83,32 @@ class PairReads():
                 last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
-        print >> sys.stderr, 'number of single end read pairs identified: %s' % str(sgl_count)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
         print >> sys.stderr, 'number of re-ligation read pairs identified: %s' % str(rlg_count)
         print >> sys.stderr, 'number of junk read pairs: %s' % str(junk_count)
         hic_output.close()
         ctl_output.close()
         rlg_output.close()
-        sgl_output.close()
         junk_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process Hi-C bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
+        print >> sys.stderr, '[sort the Hi-C output bam files]'
+        start_time = time.time()
+        pysam.sort(hic_filename, output_prefix + "_hic_sorted")
+        pysam.sort(ctl_filename, output_prefix + "_hctl_sorted")
+        pysam.sort(rlg_filename, output_prefix + "_rlg_sorted")
+        end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
+            round((end_time - start_time) / 60.0, 2))
 
     def control_separate(self, cutoff, mapq, enzyme, output_prefix):
-        ctl_output = pysam.AlignmentFile(output_prefix + "_ctl.bam", 'wb', template=self.bam_reader)
-        misc_output = pysam.AlignmentFile(output_prefix + "_misc.bam", 'wb', template=self.bam_reader)
-        junk_output = pysam.AlignmentFile(output_prefix + "_jk.bam", 'wb', template=self.bam_reader)
+        ctl_filename = output_prefix + "_xctl.bam"
+        ctl_output = pysam.AlignmentFile(ctl_filename, 'wb', template=self.bam_reader)
+        misc_filename = output_prefix + "_misc.bam"
+        misc_output = pysam.AlignmentFile(misc_filename, 'wb', template=self.bam_reader)
+        junk_filename = output_prefix + "_xjk.bam"
+        junk_output = pysam.AlignmentFile(junk_filename, 'wb', template=self.bam_reader)
         total = 0
         ctl_count = 0
         misc_count = 0
@@ -114,6 +118,9 @@ class PairReads():
         reader = self.bam_reader.fetch(until_eof=True)
         last = None
         for current in reader:
+            if last is None:
+                last = current
+                continue
             if last.query_name == current.query_name:
                 total += 1
                 is_last_invalid = is_unmapped_or_low_mapq(last, mapq)
@@ -140,6 +147,7 @@ class PairReads():
                             misc_output.write(last)
                         if not is_current_invalid:
                             misc_output.write(current)
+                last = None
             else:
                 print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (last.query_name, current.query_name)
                 last = current
@@ -152,6 +160,13 @@ class PairReads():
         junk_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process control bam files.' % str(
+            round((end_time - start_time) / 60.0, 2))
+        print >> sys.stderr, '[sort the control output bam files]'
+        start_time = time.time()
+        pysam.sort(ctl_filename, output_prefix + "_xctl_sorted")
+        pysam.sort(misc_filename, output_prefix + "_misc_sorted")
+        end_time = time.time()
+        print >> sys.stderr, 'cost %s minutes to sort the output bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
 
     def build_adj(self, matrix, output_prefix):
