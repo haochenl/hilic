@@ -23,14 +23,14 @@ def run_samtools_concatenation(bam_file_list, combined_bam_filename):
     subprocess.call(args)
 
 
-def run_samtools_sort(input_bam_filename, output_bam_prefix, threads):
+def run_samtools_sort(input_bam_filename, output_bam_filename, threads):
     """
     Sort bam file by position
     :param input_bam_filename: input bam file name.
-    :param output_bam_prefix: output bam file prefix
+    :param output_bam_filename: output bam file name
     :param threads: number of threads for sorting
     """
-    args = ["samtools", "sort", "-@", str(threads), input_bam_filename, "-o", output_bam_prefix]
+    args = ["samtools", "sort", "-@", str(threads), input_bam_filename, "-o", output_bam_filename]
     subprocess.call(args)
 
 
