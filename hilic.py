@@ -164,11 +164,7 @@ class InputFileReader():
 if __name__ == '__main__':
     ## parse command line arguments
     args = ProgramArguments(__doc__, __version__).parse()
-    if args.input == "-":
-        os.chdir(os.path.dirname(args.outputPrefix))
-    else:
-        utils.check_file_status(args.input)
-        os.chdir(os.path.dirname(args.outputPrefix))
+    utils.check_file_status(args.input)
     ## if not build directly from separate bam files, process the configuration input files
     if args.type == "hic":
         ## separate Hi-C pairs into contacts and control
