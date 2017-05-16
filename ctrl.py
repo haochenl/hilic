@@ -60,8 +60,8 @@ class PairReads():
                 # write the Hi-C output
                 elif is_hic(r1, r2, cutoff, is_r1_invalid, is_r2_invalid):
                     hic_count += 1
-                    hic1_output.write(r1)
-                    hic2_output.write(r2)
+                    hic_output.write(r1)
+                    hic_output.write(r2)
                 else:
                     enzyme_site = self._siteDictionary[enzyme]
                     ligation_junction = self._junctionDictionary[enzyme]

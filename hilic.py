@@ -42,7 +42,7 @@ class ProgramArguments():
         required_arguments.add_argument("-e", "--enzyme", help="name of the restriction enzyme (case sensitive e.g. HindIII)",
                                         action="store", dest="enzyme", metavar="STRING", required=True)
         required_arguments.add_argument("-o", "--output", help="the output prefix of the bam files",
-                                        action="store", dest="outputPrefix", metavar="STRING", required=True)
+                                        action="store", dest="outputPrefix", metavar="<PATH TO PREFIX>", required=True)
         return self.parser.parse_args(args)
 
 
