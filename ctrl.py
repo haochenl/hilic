@@ -15,28 +15,20 @@ class PairReads():
     _siteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
     _junctionDictionary = {"HindIII": "AAGCTAGCTT", "DpnII": "GATCGATC", "NcoI": "CCATGCATGG", "MboI": "GATCGATC"}
 
-    def __init__(self, read1_filename, read2_filename, type='rb'):
-        self.read1 = pysam.AlignmentFile(read1_filename, type)
-        self.read2 = pysam.AlignmentFile(read2_filename, type)
-        self.read1_filename = read1_filename
-        self.read2_filename = read2_filename
+    def __init__(self, bam_filename, type='rb'):
+        self.bam_reader = pysam.AlignmentFile(bam_filename, type)
+        self.bam_filename = bam_filename
 
     def hic_separate(self, cutoff, mapq, enzyme, output_prefix):
-        self.read1.reset()
-        self.read2.reset()
-        itr1 = self.read1.fetch(until_eof=True)
-        itr2 = self.read2.fetch(until_eof=True)
-        hic_output_prefix = output_prefix + "_hic"
-        hic1_output = pysam.AlignmentFile(hic_output_prefix + ".hic1.bam", 'wb', template=self.read1)
-        hic2_output = pysam.AlignmentFile(hic_output_prefix + ".hic2.bam", 'wb', template=self.read2)
+        hic_output = pysam.AlignmentFile(output_prefix + "_hic.bam", 'wb', template=self.bam_reader)
         # the control reads alignment output
-        ctl_output = pysam.AlignmentFile(hic_output_prefix + ".ctl.bam", 'wb', template=self.read1)
+        ctl_output = pysam.AlignmentFile(output_prefix + "_ctl.bam", 'wb', template=self.bam_reader)
         # the religation reads alignment output
-        rlg_output = pysam.AlignmentFile(hic_output_prefix + ".rlg.bam", 'wb', template=self.read1)
+        rlg_output = pysam.AlignmentFile(output_prefix + "_rlg.bam", 'wb', template=self.bam_reader)
         # the single end aligned reads alignment output
-        sgl_output = pysam.AlignmentFile(hic_output_prefix + ".sgl.bam", 'wb', template=self.read1)
+        sgl_output = pysam.AlignmentFile(output_prefix + "_sgl.bam", 'wb', template=self.bam_reader)
         # the junk alignment output
-        junk_output = pysam.AlignmentFile(hic_output_prefix + ".jk.bam", 'wb', template=self.read1)
+        junk_output = pysam.AlignmentFile(output_prefix + "_jk.bam", 'wb', template=self.bam_reader)
         total = 0
         hic_count = 0
         ctl_count = 0
@@ -45,10 +37,13 @@ class PairReads():
         junk_count = 0
         print >> sys.stderr, '[process Hi-C alignment files to retrieve contact reads and control reads]'
         start_time = time.time()
-        for r1 in itr1:
-            r2 = itr2.next()
-            total += 1
+        self.bam_reader.reset()
+        reader = self.bam_reader.fetch(until_eof=True)
+        r1 = reader.next()
+        r2 = reader.next()
+        while reader:
             if r1.query_name == r2.query_name:
+                total += 1
                 is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
                 is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
                 # write the single end reads output
@@ -86,9 +81,12 @@ class PairReads():
                         junk_count += 1
                         junk_output.write(r1)
                         junk_output.write(r2)
+                r1 = reader.next()
+                r2 = reader.next()
             else:
-                print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
-                sys.exit(1)
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (r1.query_name, r2.query_name)
+                r1 = r2
+                r2 = reader.next()
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
         print >> sys.stderr, 'number of single end read pairs identified: %s' % str(sgl_count)
@@ -106,24 +104,22 @@ class PairReads():
             round((end_time - start_time) / 60.0, 2))
 
     def control_separate(self, cutoff, mapq, enzyme, output_prefix):
-        self.read1.reset()
-        self.read2.reset()
-        itr1 = self.read1.fetch(until_eof=True)
-        itr2 = self.read2.fetch(until_eof=True)
-        ctl_output_prefix = output_prefix + "_ctl"
-        ctl_output = pysam.AlignmentFile(ctl_output_prefix + ".ctl.bam", 'wb', template=self.read1)
-        misc_output = pysam.AlignmentFile(ctl_output_prefix + ".misc.bam", 'wb', template=self.read1)
-        junk_output = pysam.AlignmentFile(ctl_output_prefix + ".jk.bam", 'wb', template=self.read1)
+        ctl_output = pysam.AlignmentFile(output_prefix + "_ctl.bam", 'wb', template=self.bam_reader)
+        misc_output = pysam.AlignmentFile(output_prefix + "_misc.bam", 'wb', template=self.bam_reader)
+        junk_output = pysam.AlignmentFile(output_prefix + "_jk.bam", 'wb', template=self.bam_reader)
         total = 0
         ctl_count = 0
         misc_count = 0
         junk_count = 0
         print >> sys.stderr, '[process control alignment files to retrieve control reads]'
         start_time = time.time()
-        for r1 in itr1:
-            r2 = itr2.next()
-            total += 1
+        self.bam_reader.reset()
+        reader = self.bam_reader.fetch(until_eof=True)
+        r1 = reader.next()
+        r2 = reader.next()
+        while reader:
             if r1.query_name == r2.query_name:
+                total += 1
                 is_r1_invalid = is_unmapped_or_low_mapq(r1, mapq)
                 is_r2_invalid = is_unmapped_or_low_mapq(r2, mapq)
                 # write into junk output if read pair meets Hi-C conditions
@@ -148,9 +144,12 @@ class PairReads():
                             misc_output.write(r1)
                         if not is_r2_invalid:
                             misc_output.write(r2)
+                r1 = reader.next()
+                r2 = reader.next()
             else:
-                print >> sys.stderr, 'unmatched headers between two reads -> truncated files'
-                sys.exit(1)
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (r1.query_name, r2.query_name)
+                r1 = r2
+                r2 = reader.next()
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
         print >> sys.stderr, 'number of miscellaneous read pairs identified: %s' % str(misc_count)
