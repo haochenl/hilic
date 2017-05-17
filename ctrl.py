@@ -10,9 +10,8 @@ import sys
 import time
 import matrix
 
+
 class PairReads():
-    _forwardSiteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
-    _reverseSiteDictionary = {"HindIII": "AAGCT", "DpnII": "GATC", "NcoI": "CCATG", "MboI": "GATC"}
     _junctionDictionary = {"HindIII": "AAGCTAGCTT", "DpnII": "GATCGATC", "NcoI": "CCATGCATGG", "MboI": "GATCGATC"}
 
     def __init__(self, bam_filename, type='rb'):
@@ -78,7 +77,8 @@ class PairReads():
                         junk_output.write(current)
                 last = None
             else:
-                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (current.query_name, last.query_name)
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (
+                current.query_name, last.query_name)
                 last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
@@ -147,7 +147,8 @@ class PairReads():
                             misc_output.write(current)
                 last = None
             else:
-                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (last.query_name, current.query_name)
+                print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (
+                last.query_name, current.query_name)
                 last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
@@ -179,7 +180,7 @@ class PairReads():
             r2 = itr2.next()
             total += 1
             if total % 5000000 == 0:
-                print >> sys.stderr, 'processed %s millions Hi-C contacts.' % str(total/1000000)
+                print >> sys.stderr, 'processed %s millions Hi-C contacts.' % str(total / 1000000)
             matrix.populate(r1, r2)
         output_filename = output_prefix + ".adj"
         matrix.write(output_filename)
@@ -253,11 +254,15 @@ def is_ctl(read1, read2, enzyme, junction, is_read1_invalid, is_read2_invalid):
         return False
 
 
+forwardSiteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
+reverseSiteDictionary = {"HindIII": "AAGCT", "DpnII": "GATC", "NcoI": "CCATG", "MboI": "GATC"}
+
+
 def is_match(read, enzyme):
     if read.is_reverse:
-        return read.query_sequence.endswith(self._reverseSiteDictionary[enzyme])
+        return read.query_sequence.endswith(reverseSiteDictionary[enzyme])
     else:
-        return read.query_sequence.startswith(self._forwardSiteDictionary[enzyme])
+        return read.query_sequence.startswith(forwardSiteDictionary[enzyme])
 
 
 def is_junction(read, junction):
@@ -275,4 +280,3 @@ def is_rlg(read1, read2, is_read1_invalid, is_read2_invalid):
             return False
     else:
         return False
-
