@@ -8,11 +8,11 @@ import pysam
 import os
 import sys
 import time
-import regex
 import matrix
 
 class PairReads():
-    _siteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
+    _forwardSiteDictionary = {"HindIII": "AGCTT", "DpnII": "GATC", "NcoI": "CATGG", "MboI": "GATC"}
+    _reverseSiteDictionary = {"HindIII": "AAGCT", "DpnII": "GATC", "NcoI": "CCATG", "MboI": "GATC"}
     _junctionDictionary = {"HindIII": "AAGCTAGCTT", "DpnII": "GATCGATC", "NcoI": "CCATGCATGG", "MboI": "GATCGATC"}
 
     def __init__(self, bam_filename, type='rb'):
@@ -59,10 +59,9 @@ class PairReads():
                     hic_output.write(last)
                     hic_output.write(current)
                 else:
-                    enzyme_site = self._siteDictionary[enzyme]
                     ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(current, last, enzyme_site, ligation_junction, is_current_invalid, is_last_invalid):
+                    if is_ctl(current, last, enzyme, ligation_junction, is_current_invalid, is_last_invalid):
                         ctl_count += 1
                         if not is_last_invalid:
                             ctl_output.write(last)
@@ -131,10 +130,9 @@ class PairReads():
                     junk_output.write(last)
                     junk_output.write(current)
                 else:
-                    enzyme_site = self._siteDictionary[enzyme]
                     ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
-                    if is_ctl(last, current, enzyme_site, ligation_junction, is_last_invalid, is_current_invalid):
+                    if is_ctl(last, current, enzyme, ligation_junction, is_last_invalid, is_current_invalid):
                         ctl_count += 1
                         if not is_last_invalid:
                             ctl_output.write(last)
@@ -238,11 +236,11 @@ def is_hic(read1, read2, cutoff, is_r1_invalid, is_r2_invalid):
             return False
 
 
-def is_ctl(read1, read2, site, junction, is_read1_invalid, is_read2_invalid):
-    is_read1_match = is_match(read1, site)
-    is_read2_match = is_match(read2, site)
+def is_ctl(read1, read2, enzyme, junction, is_read1_invalid, is_read2_invalid):
+    is_read1_match = is_match(read1, enzyme)
+    is_read2_match = is_match(read2, enzyme)
     if is_read1_match or is_read2_match:
-        if is_junction(read1, site, junction) or is_junction(read2, site, junction):
+        if is_junction(read1, junction) or is_junction(read2, junction):
             return False
         elif not is_read1_invalid and not is_read2_invalid:
             if read1.pos * strand(read1) + read2.pos * strand(read2) >= 0:
@@ -255,11 +253,14 @@ def is_ctl(read1, read2, site, junction, is_read1_invalid, is_read2_invalid):
         return False
 
 
-def is_match(read, site):
-    return regex.match("^%s" % site, read.query_sequence) is not None
+def is_match(read, enzyme):
+    if read.is_reverse:
+        return read.query_sequence.endswith(self._reverseSiteDictionary[enzyme])
+    else:
+        return read.query_sequence.startswith(self._forwardSiteDictionary[enzyme])
 
 
-def is_junction(read, site, junction):
+def is_junction(read, junction):
     if read.cigartuples is None or len(read.cigartuples) == 1:
         return False
     else:
