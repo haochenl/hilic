@@ -40,10 +40,13 @@ class HicMatrix():
         self.matrix = [[0] * (matrix_dimension - row) for row in range(matrix_dimension)]
         print >> sys.stderr, 'initialized Hi-C contact matrix.'
 
-    def populate(self, read1, read2):
-        if read1.reference_name in self.chr_start_idx_dict and read2.reference_name in self.chr_start_idx_dict:
-            read1_idx = self.chr_start_idx_dict[read1.reference_name] + (read1.pos - 1)/self.resolution
-            read2_idx = self.chr_start_idx_dict[read2.reference_name] + (read2.pos - 1)/self.resolution
+    def populate(self, line):
+        if line.startswith("#"):
+            pass
+        fields = line.strip().split()
+        if fields[1] in self.chr_start_idx_dict and fields[3] in self.chr_start_idx_dict:
+            read1_idx = self.chr_start_idx_dict[fields[1]] + (int(fields[2]) - 1)/self.resolution
+            read2_idx = self.chr_start_idx_dict[fields[3]] + (int(fields[4]) - 1)/self.resolution
             if read1_idx <= read2_idx:
                 self.matrix[read1_idx][read2_idx - read1_idx] += 1
             else:
@@ -115,9 +118,10 @@ class CtlVector():
         vector_dimension = self.chr_start_idx_dict[self.chr_array[-1]] + (self.length_array[-1] - 1)/resolution + 1
         self.vector = [0] * vector_dimension
 
-    def populate(self, read):
-        if not read.is_unmapped and read.reference_name in self.chr_start_idx_dict:
-            read_idx = self.chr_start_idx_dict[read.reference_name] + (read.pos - 1)/self.resolution
+    def populate(self, line):
+        fields = line.strip().split()
+        if fields[1] in self.chr_start_idx_dict:
+            read_idx = self.chr_start_idx_dict[fields[1]] + (int(fields[2]) - 1)/self.resolution
             self.vector[read_idx] += 1
         else:
             pass
