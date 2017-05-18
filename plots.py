@@ -14,7 +14,7 @@ def custom_log(a, b):
     else:
         return math.log(a/b)
 
-def plot_diff_heatmaps(filename, matrix1, matrix2, title=None):
+def plot_diff_heatmap(filename, matrix1, matrix2, title=None):
     """
     compute and plot log ratio difference between matrices applied with different methods
     :param matrix1: a 2D numpy array
