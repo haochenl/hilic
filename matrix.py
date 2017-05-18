@@ -43,16 +43,17 @@ class HicMatrix():
     def populate(self, line):
         if line.startswith("#"):
             pass
-        fields = line.strip().split()
-        if fields[1] in self.chr_start_idx_dict and fields[3] in self.chr_start_idx_dict:
-            read1_idx = self.chr_start_idx_dict[fields[1]] + (int(fields[2]) - 1)/self.resolution
-            read2_idx = self.chr_start_idx_dict[fields[3]] + (int(fields[4]) - 1)/self.resolution
-            if read1_idx <= read2_idx:
-                self.matrix[read1_idx][read2_idx - read1_idx] += 1
-            else:
-                self.matrix[read2_idx][read1_idx - read2_idx] += 1
         else:
-            pass
+            fields = line.strip().split()
+            if fields[1] in self.chr_start_idx_dict and fields[3] in self.chr_start_idx_dict:
+                read1_idx = self.chr_start_idx_dict[fields[1]] + (int(fields[2]) - 1)/self.resolution
+                read2_idx = self.chr_start_idx_dict[fields[3]] + (int(fields[4]) - 1)/self.resolution
+                if read1_idx <= read2_idx:
+                    self.matrix[read1_idx][read2_idx - read1_idx] += 1
+                else:
+                    self.matrix[read2_idx][read1_idx - read2_idx] += 1
+            else:
+                pass
 
     def write(self, output_filename):
         print >> sys.stderr, 'write Hi-C contact matrix into contact adjacency list with resolution of %d' % self.resolution
