@@ -42,3 +42,14 @@ def plot_diff_heatmaps(filename, matrix1, matrix2, title=None):
         alabtools.plots.plotmatrix(filename, mat_diff, cmap=color, title=title)
 
 
+def plot_heatmaps(contact_matrix, figure_prefix, method, clip_max=None):
+    directory = os.path.join(os.getcwd(), figure_prefix)
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+    stella = alabtools.plots.make_colormap([(0,0,0),(0,0,1),0.0,(0,0,1),(1,1,0),0.05,(1,1,0),(1,1,1)],'stella')
+    bloody = alabtools.plots.make_colormap([(1,1,1),(1,0,0),0.5,(1,0,0),(0,0,0)],'bloody')
+    for chrom in contact_matrix.genome.chroms:
+        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
+        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_bloody_%s.pdf" % chrom), clip_max=clip_max, cmap=bloody, title="%s(%s)" % (chrom, method))
