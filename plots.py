@@ -42,14 +42,28 @@ def plot_diff_heatmap(filename, matrix1, matrix2, title=None):
         alabtools.plots.plotmatrix(filename, mat_diff, cmap=color, title=title)
 
 
-def plot_heatmaps(contact_matrix, figure_prefix, method, clip_max=None):
+def plot_heatmaps(contact_matrix, figure_prefix, method):
     directory = os.path.join(os.getcwd(), figure_prefix)
     try:
         os.stat(directory)
     except:
         os.mkdir(directory)
     stella = alabtools.plots.make_colormap([(0,0,0),(0,0,1),0.0,(0,0,1),(1,1,0),0.05,(1,1,0),(1,1,1)],'stella')
-    bloody = alabtools.plots.make_colormap([(1,1,1),(1,0,0),0.5,(1,0,0),(0,0,0)],'bloody')
     for chrom in contact_matrix.genome.chroms:
-        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
-        contact_matrix[chrom].plot(os.path.join(directory, figure_prefix + "_bloody_%s.pdf" % chrom), clip_max=clip_max, cmap=bloody, title="%s(%s)" % (chrom, method))
+        matrix = contact_matrix[chrom].matrix.toarray()
+        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
+        nonzeros = matrix[np.nonzero(matrix)]
+        scale_95qtl = np.percentile(nonzeros, 95)
+        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_redness_%s.pdf" % chrom), clip_max=scale_95qtl, cmap=alabtools.plots.red, title="%s(%s)" % (chrom, method))
+
+
+def plot_diff_heatmaps(figure_prefix, contact_matrix1, method1, contact_matrix2, method2):
+    directory = os.path.join(os.getcwd(), figure_prefix)
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+    for chrom in contact_matrix.genome.chroms:
+        matrix1 = contact_matrix1[chrom].matrix.toarray()
+        matrix2 = contact_matrix2[chrom].matrix.toarray()
+        plot_diff_heatmap(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), matrix1, matrix2, title="%s: log(%s/%s)" % (chrom, method1, method2))
