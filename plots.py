@@ -39,7 +39,7 @@ def plot_diff_heatmap(filename, matrix1, matrix2, title=None):
     else:
         blueness = float(-diff_min/diff_max)
         color = alabtools.plots.make_colormap([(1.0-blueness,1.0-blueness,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.0,0.0)], 'bwr')
-        alabtools.plots.plotmatrix(filename, mat_diff, cmap=color, title=title)
+        alabtools.plots.plotmatrix(filename, matrix_diff, cmap=color, title=title)
 
 
 def plot_heatmaps(contact_matrix, figure_prefix, method):
@@ -51,10 +51,10 @@ def plot_heatmaps(contact_matrix, figure_prefix, method):
     stella = alabtools.plots.make_colormap([(0,0,0),(0,0,1),0.0,(0,0,1),(1,1,0),0.05,(1,1,0),(1,1,1)],'stella')
     for chrom in contact_matrix.genome.chroms:
         matrix = contact_matrix[chrom].matrix.toarray()
-        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), cmap=stella, title="%s(%s)" % (chrom, method))
+        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_stella_%s.pdf" % chrom), matrix, cmap=stella, title="%s(%s)" % (chrom, method))
         nonzeros = matrix[np.nonzero(matrix)]
         scale_95qtl = np.percentile(nonzeros, 95)
-        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_redness_%s.pdf" % chrom), clip_max=scale_95qtl, cmap=alabtools.plots.red, title="%s(%s)" % (chrom, method))
+        alabtools.plots.plotmatrix(os.path.join(directory, figure_prefix + "_redness_%s.pdf" % chrom), matrix, clip_max=scale_95qtl, cmap=alabtools.plots.red, title="%s(%s)" % (chrom, method))
 
 
 def plot_diff_heatmaps(figure_prefix, contact_matrix1, method1, contact_matrix2, method2):
@@ -63,7 +63,7 @@ def plot_diff_heatmaps(figure_prefix, contact_matrix1, method1, contact_matrix2,
         os.stat(directory)
     except:
         os.mkdir(directory)
-    for chrom in contact_matrix.genome.chroms:
+    for chrom in contact_matrix1.genome.chroms:
         matrix1 = contact_matrix1[chrom].matrix.toarray()
         matrix2 = contact_matrix2[chrom].matrix.toarray()
         plot_diff_heatmap(os.path.join(directory, figure_prefix + "_%s.pdf" % chrom), matrix1, matrix2, title="%s: log(%s/%s)" % (chrom, method1, method2))

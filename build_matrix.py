@@ -8,7 +8,10 @@ import argparse
 import matrix
 import sys
 import plots
+import copy
 
+__author__ = 'Haochen Li'
+__version__ = 'v0.0.1'
 
 class ProgramArguments():
     """
@@ -39,7 +42,7 @@ if __name__ == '__main__':
     ## parse command line arguments
     args = ProgramArguments(__doc__, __version__).parse()
     ## generate Hi-C contact matrix
-    print >> sys.stderr, '[load raw Hi-C matrix for resolution: %d]' % args,resolution
+    print >> sys.stderr, '[load raw Hi-C matrix for resolution: %d]' % args.resolution
     raw_matrix = matrix.MatrixNorm(args.adj, args.bed)
     raw_matrix.create_raw_matrix(args.genome, args.resolution)
     raw_matrix.contact_matrix.save(args.outputPrefix + "_observed_%d" % args.resolution)
@@ -58,7 +61,7 @@ if __name__ == '__main__':
     hic_krnorm.krnorm()
     hic_krnorm.contact_matrix.save(args.outputPrefix + "_kr_norm_%d" % args.resolution)
     print >> sys.stderr, 'plot heatmaps for individual chromosomes.'
-    plots.plot_heatmaps(hic_krnorm.contact_matrix, "heatmap_kr_norm_%d" % res, "KRnorm")
+    plots.plot_heatmaps(hic_krnorm.contact_matrix, "heatmap_kr_norm_%d" % args.resolution, "KRnorm")
     print >> sys.stderr, '[plot diff heatmaps between RES norm and KR norm]'
-    plots.plot_diff_heatmaps("Diff", hic_ctlnorm.contact_matrix, "RES", hic_krnorm.contact_matrix, "KR")
+    plots.plot_diff_heatmaps("heatmap_diff_%d" % args.resolution, hic_ctlnorm.contact_matrix, "RES", hic_krnorm.contact_matrix, "KR")
 
