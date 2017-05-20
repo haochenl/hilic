@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import matrix
+import regex
 
 
 class PairReads():
@@ -260,9 +261,11 @@ reverseSiteDictionary = {"HindIII": "AAGCT", "DpnII": "GATC", "NcoI": "CCATG", "
 
 def is_match(read, enzyme):
     if read.is_reverse:
-        return read.query_sequence.endswith(reverseSiteDictionary[enzyme])
+        site = reverseSiteDictionary[enzyme]
+        return regex.search("(%s$){s<=1}" % site, read.query_sequence) is not None or regex.search("(%s$){d<=1}" % site, read.query_sequence) is not None
     else:
-        return read.query_sequence.startswith(forwardSiteDictionary[enzyme])
+        site = forwardSiteDictionary[enzyme]
+        return regex.search("(^%s){s<=1}" % site, read.query_sequence) is not None or regex.search("(^%s){d<=1}" % site, read.query_sequence) is not None
 
 
 def is_junction(read, junction):
