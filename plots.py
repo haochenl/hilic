@@ -33,12 +33,14 @@ def plot_diff_heatmap(filename, matrix1, matrix2, title=None):
     diff_max = np.max(matrix_diff)
     scale = float(diff_min/(diff_min - diff_max))
     if diff_min + diff_max < 0:
-        redness = float(-diff_max/diff_min)
-        color = alabtools.plots.make_colormap([(0.0,0.0,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,1.0-redness,1.0-redness)], 'bwr')
+        ##redness = float(-diff_max/diff_min)
+        ##color = alabtools.plots.make_colormap([(0.0,0.0,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,1.0-redness,1.0-redness)], 'bwr')
+        color = alabtools.plots.make_colormap([(0.0,0.0,1.0),(0.0,0.66,1.0),scale*2.0-1.0,(0.0,0.66,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.66,0.0)], 'bcwo')
         alabtools.plots.plotmatrix(filename, matrix_diff, cmap=color, title=title)
     else:
-        blueness = float(-diff_min/diff_max)
-        color = alabtools.plots.make_colormap([(1.0-blueness,1.0-blueness,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.0,0.0)], 'bwr')
+        ##blueness = float(-diff_min/diff_max)
+        ##color = alabtools.plots.make_colormap([(1.0-blueness,1.0-blueness,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.0,0.0)], 'bwr')
+        color = alabtools.plots.make_colormap([(0.0,0.66,1.0),(1.0,1.0,1.0),scale,(1.0,1.0,1.0),(1.0,0.66,0.0),scale*2.0,(1.0,0.66,0.0),(1.0,0.0,0.0)], 'cwor')
         alabtools.plots.plotmatrix(filename, matrix_diff, cmap=color, title=title)
 
 
