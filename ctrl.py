@@ -32,6 +32,12 @@ class PairReads():
         # the junk alignment output
         junk_filename = output_prefix + "_hjk.bam"
         junk_output = pysam.AlignmentFile(junk_filename, 'wb', template=self.bam_reader)
+        # the Hi-C pairs output
+        pairs_header = PairsFileHeader(self.bam_reader, "1.0", "upper triangle")
+        pairs_output = open(output_prefix + ".pairs", 'w')
+        pairs_header.write_header(pairs_output)
+        # the Hi-C res control output
+        res_output = open(output_prefix + ".res", 'w')
         total = 0
         hic_count = 0
         ctl_count = 0
@@ -53,6 +59,7 @@ class PairReads():
                     junk_count += 1
                     junk_output.write(last)
                     junk_output.write(current)
+                    write_pair(pairs_output, last, current)
                 # write the Hi-C output
                 elif is_hic(current, last, cutoff, is_current_invalid, is_last_invalid):
                     hic_count += 1
@@ -65,8 +72,10 @@ class PairReads():
                         ctl_count += 1
                         if not is_last_invalid:
                             ctl_output.write(last)
+                            write_res(res_output, last)
                         if not is_current_invalid:
                             ctl_output.write(current)
+                            write_res(res_output, current)
                     # write the re-ligation reads into output
                     elif is_rlg(current, last, is_current_invalid, is_last_invalid):
                         rlg_count += 1
@@ -79,7 +88,7 @@ class PairReads():
                 last = None
             else:
                 print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (
-                current.query_name, last.query_name)
+                    current.query_name, last.query_name)
                 last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of Hi-C contacts identified: %s' % str(hic_count)
@@ -90,6 +99,8 @@ class PairReads():
         ctl_output.close()
         rlg_output.close()
         junk_output.close()
+        pairs_output.close()
+        res_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process Hi-C bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
@@ -109,6 +120,8 @@ class PairReads():
         misc_output = pysam.AlignmentFile(misc_filename, 'wb', template=self.bam_reader)
         junk_filename = output_prefix + "_xjk.bam"
         junk_output = pysam.AlignmentFile(junk_filename, 'wb', template=self.bam_reader)
+        # the filtered res control output
+        res_output = open(output_prefix + ".res", 'w')
         total = 0
         ctl_count = 0
         misc_count = 0
@@ -137,8 +150,10 @@ class PairReads():
                         ctl_count += 1
                         if not is_last_invalid:
                             ctl_output.write(last)
+                            write_res(res_output, last)
                         if not is_current_invalid:
                             ctl_output.write(current)
+                            write_res(res_output, current)
                     # write the miscellaneous control read to output
                     else:
                         misc_count += 1
@@ -149,7 +164,7 @@ class PairReads():
                 last = None
             else:
                 print >> sys.stderr, 'unmatched headers between two reads: (%s, %s)' % (
-                last.query_name, current.query_name)
+                    last.query_name, current.query_name)
                 last = current
         print >> sys.stderr, 'total number of read pairs processed: %s' % str(total)
         print >> sys.stderr, 'number of control read pairs identified: %s' % str(ctl_count)
@@ -158,6 +173,7 @@ class PairReads():
         ctl_output.close()
         misc_output.close()
         junk_output.close()
+        res_output.close()
         end_time = time.time()
         print >> sys.stderr, 'cost %s minutes to process control bam files.' % str(
             round((end_time - start_time) / 60.0, 2))
@@ -209,6 +225,23 @@ class SingleRead():
             round((end_time - start_time) / 60.0, 2))
 
 
+class PairsFileHeader():
+    def __init__(self, bam_reader, version, shape, genome=None):
+        self.version = version
+        self.shape = shape
+        self.genome = genome
+        self.references = bam_reader.header['SQ']
+
+    def write_header(self, writer):
+        writer.write("## pairs format v%s\n" % str(self.version))
+        writer.write("#shape: %s\n" % str(self.version))
+        if self.genome is not None:
+            writer.write("#genome_assembly: %s\n" % str(self.genome))
+        for elem in self.references:
+            writer.write("#chromsize: %s %d\n" % (elem['SN'], elem['LN']))
+        writer.write("#columns: readID chr1 pos1 chr2 pos2 strand1 strand2\n")
+
+
 def is_unmapped_or_low_mapq(read, mapq):
     return read.is_unmapped or read.mapping_quality < mapq
 
@@ -224,6 +257,18 @@ def strand(read):
     forward strand: -1
     """
     return read.is_reverse * 2 - 1
+
+
+def strand_sign(read):
+    """
+    Returns:
+    reverse strand: "-"
+    forward strand: "+"
+    """
+    if read.is_reverse:
+        return "-"
+    else:
+        return "+"
 
 
 def is_hic(read1, read2, cutoff, is_r1_invalid, is_r2_invalid):
@@ -262,10 +307,12 @@ reverseSiteDictionary = {"HindIII": "AAGCT", "DpnII": "GATC", "NcoI": "CCATG", "
 def is_match(read, enzyme):
     if read.is_reverse:
         site = reverseSiteDictionary[enzyme]
-        return regex.search("(%s$){s<=1}" % site, read.query_sequence) is not None or regex.search("(%s$){d<=1}" % site, read.query_sequence) is not None
+        return regex.search("(%s$){s<=1}" % site, read.query_sequence) is not None or regex.search("(%s$){d<=1}" % site,
+                                                                                                   read.query_sequence) is not None
     else:
         site = forwardSiteDictionary[enzyme]
-        return regex.search("(^%s){s<=1}" % site, read.query_sequence) is not None or regex.search("(^%s){d<=1}" % site, read.query_sequence) is not None
+        return regex.search("(^%s){s<=1}" % site, read.query_sequence) is not None or regex.search("(^%s){d<=1}" % site,
+                                                                                                   read.query_sequence) is not None
 
 
 def is_junction(read, junction):
@@ -283,3 +330,11 @@ def is_rlg(read1, read2, is_read1_invalid, is_read2_invalid):
             return False
     else:
         return False
+
+
+def write_pair(writer, read1, read2):
+    writer.write("%s\t%s\t%d\t%s\t%d\t%s\t%s\n" % (read1.query_name, read1.reference_name, read1.pos, read2.reference_name, read2.pos, strand_sign(read1), strand_sign(read2)))
+
+
+def write_res(writer, read):
+    writer.write("%s\t%s\t%d\t%s\n" % (read.query_name, read.reference_name, read.pos, strand_sign(read)))
