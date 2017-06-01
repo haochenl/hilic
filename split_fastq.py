@@ -36,12 +36,17 @@ class ProgramArguments():
 
 def create_dir_and_fastqs(prefix, splits, read1_input, read2_input):
     directory = "%s_%d" % (prefix, splits)
+    print >> sys.stderr, '[create split fastq file directory: %s]' % directory
     try:
         os.stat(directory)
     except:
         os.mkdir(directory)
-    out1 = open(os.path.join(directory, read1_input.split('.')[0] + ".%d.fastq" % splits), 'w')
-    out2 = open(os.path.join(directory, read2_input.split('.')[0] + ".%d.fastq" % splits), 'w')
+    read1_output_name = read1_input.split('.')[0] + ".%d.fastq" % splits
+    read2_output_name = read2_input.split('.')[0] + ".%d.fastq" % splits
+    print >> sys.stderr, 'write fastq file: %s ...' % read1_output_name
+    out1 = open(os.path.join(directory, read1_output_name), 'w')
+    print >> sys.stderr, 'write fastq file: %s ...' % read2_output_name
+    out2 = open(os.path.join(directory, read2_output_name), 'w')
     return out1, out2
 
 
