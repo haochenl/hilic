@@ -28,8 +28,8 @@ class ProgramArguments():
                                         action="store", dest="resolution", metavar="INT", required=True, type=int)
         required_arguments.add_argument("-g", "--genome", help="reference genome of the input data",
                                         action="store", choices=["hg19", "hg38", "mm9", "mm10"], metavar="<hg19 OR hg38 OR mm9 OR mm10>", required=True)
-        required_arguments.add_argument("-o", "--output", help="the output prefix of the bam files",
-                                        action="store", dest="outputPrefix", metavar="<PATH TO PREFIX>", required=True)
+        required_arguments.add_argument("-o", "--output", help="the output prefix of the adj and bed files",
+                                        action="store", dest="outputPrefix", metavar="<PATH_TO_PREFIX>", required=True)
         return self.parser.parse_args(args)
 
 

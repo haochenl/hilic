@@ -201,3 +201,23 @@ class MatrixNorm():
     def krnorm(self):
         self.contact_matrix.maskLowCoverage()
         self.contact_matrix.krnorm()
+
+
+def hcs_to_mat(hsc_filename, mat_filename):
+    """
+    read the hcs contact matrix file and write the txt mat matrix format
+    :param hsc_filename:
+    :param mat_filename:
+    """
+    contact_matrix = alabtools.api.Contactmatrix(hsc_filename)
+    chrom_names = contact_matrix.genome.chroms
+    mat_chroms = contact_matrix.index.chrom
+    mat_starts = contact_matrix.index.start
+    mat_ends = contact_matrix.index.end
+    matrix = contact_matrix.matrix.toarray()
+    out = open(mat_filename, 'w')
+    for i in range(matrix.shape[0]):
+        line_array = [chrom_names[mat_chroms[i]], mat_starts[i], mat_ends[i]]
+        line_array.extend(matrix[i].tolist())
+        out.write(' '.join([str(elem) for elem in line_array]) + '\n')
+    out.close()
