@@ -59,12 +59,12 @@ class PairReads():
                     junk_count += 1
                     junk_output.write(last)
                     junk_output.write(current)
-                    write_pair(pairs_output, last, current)
                 # write the Hi-C output
                 elif is_hic(current, last, cutoff, is_current_invalid, is_last_invalid):
                     hic_count += 1
                     hic_output.write(last)
                     hic_output.write(current)
+                    write_pair(pairs_output, last, current)
                 else:
                     ligation_junction = self._junctionDictionary[enzyme]
                     # write the normalization control output
@@ -234,7 +234,7 @@ class PairsFileHeader():
 
     def write_header(self, writer):
         writer.write("## pairs format v%s\n" % str(self.version))
-        writer.write("#shape: %s\n" % str(self.version))
+        writer.write("#shape: %s\n" % str(self.shape))
         if self.genome is not None:
             writer.write("#genome_assembly: %s\n" % str(self.genome))
         for elem in self.references:
